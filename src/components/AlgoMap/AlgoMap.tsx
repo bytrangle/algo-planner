@@ -309,7 +309,6 @@ export default function AlgoMap() {
   // Group nodes
   const topicNodes = nodes.filter(n => n.data.type === "topic")
   const frameworkNodes = nodes.filter(n => n.data.type === "framework")
-  console.log(frameworkNodes)
   const problemNodes = nodes.filter(n => n.data.type === "problem")
 
   const handleProblemHover = useCallback((
