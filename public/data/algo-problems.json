@@ -98,7 +98,7 @@
           "slug": "n-sum",
           "problems": [
             {"id": 1, "slug": "two-sum", "title": "Two Sum", "url": "https://leetcode.com/problems/two-sum", "difficulty": "Easy"},
-            {"id": 3, "slug": "3Sum", "title": "3Sum", "url": "https://leetcode.com/problems/3sum", "difficulty": "Medium"},
+            {"id": 15, "slug": "3Sum", "title": "3Sum", "url": "https://leetcode.com/problems/3sum", "difficulty": "Medium"},
             {"id": 18, "slug": "4Sum", "title": "4Sum", "url": "https://leetcode.com/problems/4sum", "difficulty": "Medium"},
             {"id": 167, "slug": "two-sum-ii-input-array-is-sorted", "title": "Two Sum II - Input Array Is Sorted", "url": "https://leetcode.com/problems/two-sum-ii-input-array-is-sorted", "difficulty": "Medium"}
           ]
