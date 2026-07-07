@@ -44,6 +44,8 @@ export default function Home() {
   const [leetcodeCookie, setLeetcodeCookie] = useState("");
   const [cookieTooltipOpen, setCookieTooltipOpen] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [unsolvedSlugs, setUnsolvedSlugs] = useState<Set<string>>(new Set());
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdate = useCallback(async () => {
     setUpdateError(null);
@@ -53,6 +55,7 @@ export default function Home() {
       return;
     }
 
+    setIsUpdating(true);
     try {
       // 1. Fetch solved problems from LeetCode API
       const solvedRes = await fetch(
@@ -108,14 +111,14 @@ export default function Home() {
       // 4. Compute unsolved problems
       const unsolved = allLocalSlugs.filter((slug) => !solvedSlugs.has(slug));
 
-      // 5. Console.log the array
-      console.log("Unsolved problems:", unsolved);
-
-      // Close modal on success
+      // 5. Update state and close modal on success
+      setUnsolvedSlugs(new Set(unsolved));
       setIsModalOpen(false);
     } catch (e) {
       console.error(e);
       setUpdateError("Something went wrong. Check the console for details.");
+    } finally {
+      setIsUpdating(false);
     }
   }, [username, leetcodeCookie]);
 
@@ -146,7 +149,7 @@ export default function Home() {
         <div className="w-screen relative left-1/2 -translate-x-1/2">
           {/* Second div prevents svg from getting too wide on huge screen */}
           <div className="max-w-7xl mx-auto px-4 pb-16">
-            <AlgoMap />
+            <AlgoMap unsolvedSlugs={unsolvedSlugs} />
           </div>
         </div>
       </main>
@@ -244,8 +247,31 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleUpdate}
-                className="cursor-pointer rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                disabled={isUpdating}
+                className="cursor-pointer rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-2"
               >
+                {isUpdating && (
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                )}
                 Update
               </button>
             </div>

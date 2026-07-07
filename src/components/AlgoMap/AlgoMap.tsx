@@ -6,6 +6,7 @@ import * as d3 from 'd3'
 // Types
 interface Problem {
   id: number;
+  slug: string;
   title: string;
   url: string;
   difficulty: "Easy" | "Medium" | "Hard"
@@ -280,8 +281,12 @@ function computeLayout(data:{ topics: Topic[] }, width: number, height: number):
   return nodes
 }
 
+interface AlgoMapProps {
+  unsolvedSlugs?: Set<string>;
+}
+
 // Main component
-export default function AlgoMap() {
+export default function AlgoMap({ unsolvedSlugs }: AlgoMapProps) {
   const [data, setData] = useState<AlgoMapData | null>(null)
   const [hoveredProblem, setHoveredProblem] = useState<{
     problem: Problem;
@@ -389,13 +394,16 @@ export default function AlgoMap() {
       {problemNodes.map(node => {
         const problem = node.data.problem
         if (!problem) return null
+        const isUnsolved = unsolvedSlugs?.has(problem.slug)
         return (
           <circle
             key={node.id}
             cx={node.x}
             cy={node.y}
             r={node.r}
-            fill={DIFFICULTY_COLORS[problem.difficulty]}
+            fill={isUnsolved ? "none" : DIFFICULTY_COLORS[problem.difficulty]}
+            stroke={isUnsolved ? DIFFICULTY_COLORS[problem.difficulty] : undefined}
+            strokeWidth={isUnsolved ? 2 : undefined}
             className="hover:opacity-80 transition-opacity"
             onMouseEnter={() => handleProblemHover(
               problem,
