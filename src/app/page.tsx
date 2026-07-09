@@ -133,7 +133,7 @@ export default function Home() {
             <p>Practice algorithm problems smarter with the power of visualization and AI.</p>
           </div>
           <div className="mb-3">
-            <p className="text-xl">Visualizing all the problems mentioned on <a href="https://labuladong.online/en/algo" className="underline decoration-blue-600">labuladong</a> website and the topics, frameworks and patterns they belong to.</p>
+            <p className="text-xl">Visualizing common algorithm problems and their associated topics, frameworks and patterns.</p>
           </div>
         </div>
 
@@ -142,17 +142,19 @@ export default function Home() {
           {/* Second div prevents svg from getting too wide on huge screen */}
           <div className="max-w-7xl mx-auto px-4">
             <AlgoMap unsolvedSlugs={unsolvedSlugs} />
+            <div className="text-center mt-2"><small>Source: <a className="underline decoration-blue-600" href="https://labuladong.online/en/algo">labuladong.online</a></small></div>
           </div>
         </div>
 
         {/* Update Your Map button */}
-        <div className="w-full flex justify-center sm:justify-start mb-4">
+        <div className="w-full flex justify-center sm:justify-start items-center gap-3 mb-4">
+          <p>Want to see how you are doing?</p>
           <button
             onClick={() => {
               setUpdateError(null);
               setIsModalOpen(true);
             }}
-            className="cursor-pointer rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
+            className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
           >
             Update Your Map
           </button>
@@ -214,7 +216,7 @@ export default function Home() {
                     </button>
                     {cookieTooltipOpen && (
                       <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 block w-64 rounded-md bg-gray-900 px-3 py-2 text-xs text-white shadow-lg dark:bg-zinc-800 dark:text-zinc-50 z-10">
-                        Open your browser's developer tools. Click Application tab -&gt; Storage -&gt; Cookies -&gt; https://leetcode.com. Look for cookie named LEETCODE_SESSION and copy/paste its value here.
+                        Open your browser&apos;s developer tools. Click Application tab -&gt; Storage -&gt; Cookies -&gt; https://leetcode.com. Look for cookie named LEETCODE_SESSION and copy/paste its value here.
                         <span className="absolute left-1/2 -translate-x-1/2 top-full block w-2 h-2 rotate-45 bg-gray-900 dark:bg-zinc-800" />
                       </span>
                     )}
