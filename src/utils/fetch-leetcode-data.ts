@@ -50,6 +50,30 @@ export interface FetchResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Collect all problem slugs into an array (useful for rendering). */
+export function collectLocalSlugs(data: AlgoProblemsData): string[] {
+  const slugs: string[] = [];
+  for (const topic of data.topics) {
+    if (topic.frameworks) {
+      for (const fw of topic.frameworks) {
+        for (const p of fw.problems) slugs.push(p.slug);
+      }
+    }
+    if (topic.problems) {
+      for (const p of topic.problems) slugs.push(p.slug);
+    }
+    if (topic.problem_series) {
+      const series = Array.isArray(topic.problem_series)
+        ? topic.problem_series
+        : [topic.problem_series];
+      for (const s of series) {
+        for (const p of s.problems) slugs.push(p.slug);
+      }
+    }
+  }
+  return slugs;
+}
+
 /** Collect every problem slug referenced in the local algo-problems.json
  *  structure into a Set for fast membership checks. */
 export function collectAllSlugs(data: AlgoProblemsData): Set<string> {
