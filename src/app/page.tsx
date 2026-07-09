@@ -3,16 +3,7 @@
 import { useState, useCallback } from "react";
 import AlgoMap from "../components/AlgoMap/AlgoMap";
 
-interface SolvedResponse {
-  username: string;
-  total_solved: number;
-  solved_slugs: string[];
-  solved: Array<{
-    title_slug: string;
-    title: string;
-    timestamp?: string;
-  }>;
-}
+import type { FetchResult } from "../utils/fetch-leetcode-data";
 
 interface ProblemDef {
   id: number;
@@ -57,23 +48,23 @@ export default function Home() {
 
     setIsUpdating(true);
     try {
-      // 1. Fetch solved problems from LeetCode API
-      const solvedRes = await fetch(
-        `https://leetcode-api-pied.vercel.app/user/${encodeURIComponent(
-          username.trim()
-        )}/solved?x_leetcode_session=${encodeURIComponent(
-          leetcodeCookie.trim()
-        )}`
-      );
+      // 1. Fetch solved problems from server-side API route
+      const solvedRes = await fetch("/api/fetch-solved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leetcodeSession: leetcodeCookie.trim() }),
+      });
       if (!solvedRes.ok) {
         const err = await solvedRes.json().catch(() => ({}));
-        setUpdateError(err.detail || `Error ${solvedRes.status}: failed to fetch solved problems.`);
+        setUpdateError(
+          err.error || `Error ${solvedRes.status}: failed to fetch solved problems.`,
+        );
         return;
       }
-      const solvedData: SolvedResponse = await solvedRes.json();
-      const solvedSlugs = new Set(solvedData.solved_slugs);
+      const solvedData: FetchResult = await solvedRes.json();
+      console.log("Solved problems from LeetCode:", solvedData);
 
-      // 2. Fetch local algo-problems.json
+      // 2. Fetch local algo-problems.json for the full slug list
       const localRes = await fetch("/data/algo-problems.json");
       if (!localRes.ok) {
         setUpdateError("Failed to load local problem list.");
@@ -108,10 +99,15 @@ export default function Home() {
         }
       }
 
-      // 4. Compute unsolved problems
+      // 4. Build solved slug set from the leetcode-query result
+      const solvedSlugs = new Set(
+        solvedData.solvedProblems.map((p) => p.titleSlug),
+      );
+
+      // 5. Compute unsolved problems
       const unsolved = allLocalSlugs.filter((slug) => !solvedSlugs.has(slug));
 
-      // 5. Update state and close modal on success
+      // 6. Update state and close modal on success
       setUnsolvedSlugs(new Set(unsolved));
       setIsModalOpen(false);
     } catch (e) {

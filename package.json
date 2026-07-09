@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "d3": "^7.9.0",
+    "leetcode-query": "^2.0.1",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"
