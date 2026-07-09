@@ -1,9 +1,38 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import AlgoMap from "../components/AlgoMap/AlgoMap";
 
 import type { FetchResult } from "../utils/fetch-leetcode-data";
+import {
+  getCachedSolved,
+  setCachedSolved,
+  getLastUsedUsername,
+} from "../utils/solved-cache";
+
+/** Extract every problem slug from the local problem list. */
+function collectLocalSlugs(data: AlgoProblemsData): string[] {
+  const slugs: string[] = [];
+  for (const topic of data.topics) {
+    if (topic.frameworks) {
+      for (const fw of topic.frameworks) {
+        for (const p of fw.problems) slugs.push(p.slug);
+      }
+    }
+    if (topic.problems) {
+      for (const p of topic.problems) slugs.push(p.slug);
+    }
+    if (topic.problem_series) {
+      const series = Array.isArray(topic.problem_series)
+        ? topic.problem_series
+        : [topic.problem_series];
+      for (const s of series) {
+        for (const p of s.problems) slugs.push(p.slug);
+      }
+    }
+  }
+  return slugs;
+}
 
 interface ProblemDef {
   id: number;
@@ -38,11 +67,52 @@ export default function Home() {
   const [unsolvedSlugs, setUnsolvedSlugs] = useState<Set<string>>(new Set());
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // On mount, try to restore cached solved state for the last used username
+  useEffect(() => {
+    const lastUser = getLastUsedUsername();
+    if (!lastUser) return;
+
+    const cached = getCachedSolved(lastUser);
+    if (!cached) return;
+
+    // Fetch local problem list to compute unsolved slugs from cached data
+    fetch("/data/algo-problems.json")
+      .then((res) => res.json() as Promise<AlgoProblemsData>)
+      .then((localData) => {
+        const solvedSet = new Set(cached);
+        setUnsolvedSlugs(
+          new Set(collectLocalSlugs(localData).filter((s) => !solvedSet.has(s))),
+        );
+      })
+      .catch(() => {
+        /* ignore – user can re-fetch via the Update button */
+      });
+  }, []);
+
   const handleUpdate = useCallback(async () => {
     setUpdateError(null);
 
     if (!username.trim() || !leetcodeCookie.trim()) {
       setUpdateError("Both fields are required.");
+      return;
+    }
+
+    const trimmedUser = username.trim();
+
+    // Check localStorage cache before hitting the API
+    const cached = getCachedSolved(trimmedUser);
+    if (cached) {
+      console.log("Using cached solved data");
+      const localRes = await fetch("/data/algo-problems.json");
+      if (!localRes.ok) {
+        setUpdateError("Failed to load local problem list.");
+        return;
+      }
+      const localData: AlgoProblemsData = await localRes.json();
+      const allLocalSlugs: string[] = collectLocalSlugs(localData);
+      const solvedSet = new Set(cached);
+      setUnsolvedSlugs(new Set(allLocalSlugs.filter((s) => !solvedSet.has(s))));
+      setIsModalOpen(false);
       return;
     }
 
@@ -62,9 +132,11 @@ export default function Home() {
         return;
       }
       const solvedData: FetchResult = await solvedRes.json();
-      console.log("Solved problems from LeetCode:", solvedData);
 
-      // 2. Fetch local algo-problems.json for the full slug list
+      // 2. Cache the result
+      setCachedSolved(trimmedUser, solvedData.solvedProblems.map((p) => p.titleSlug));
+
+      // 3. Fetch local algo-problems.json for the full slug list
       const localRes = await fetch("/data/algo-problems.json");
       if (!localRes.ok) {
         setUpdateError("Failed to load local problem list.");
@@ -72,42 +144,14 @@ export default function Home() {
       }
       const localData: AlgoProblemsData = await localRes.json();
 
-      // 3. Collect all local problem slugs
-      const allLocalSlugs: string[] = [];
-      for (const topic of localData.topics) {
-        if (topic.frameworks) {
-          for (const fw of topic.frameworks) {
-            for (const p of fw.problems) {
-              allLocalSlugs.push(p.slug);
-            }
-          }
-        }
-        if (topic.problems) {
-          for (const p of topic.problems) {
-            allLocalSlugs.push(p.slug);
-          }
-        }
-        if (topic.problem_series) {
-          const series = Array.isArray(topic.problem_series)
-            ? topic.problem_series
-            : [topic.problem_series];
-          for (const s of series) {
-            for (const p of s.problems) {
-              allLocalSlugs.push(p.slug);
-            }
-          }
-        }
-      }
-
-      // 4. Build solved slug set from the leetcode-query result
+      // 4. Compute unsolved problems
+      const allLocalSlugs: string[] = collectLocalSlugs(localData);
       const solvedSlugs = new Set(
         solvedData.solvedProblems.map((p) => p.titleSlug),
       );
-
-      // 5. Compute unsolved problems
       const unsolved = allLocalSlugs.filter((slug) => !solvedSlugs.has(slug));
 
-      // 6. Update state and close modal on success
+      // 5. Update state and close modal on success
       setUnsolvedSlugs(new Set(unsolved));
       setIsModalOpen(false);
     } catch (e) {
