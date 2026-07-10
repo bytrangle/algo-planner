@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import type { FetchResult, AlgoProblemsData } from "../../utils/fetch-leetcode-data";
 import { collectLocalSlugs } from "../../utils/fetch-leetcode-data";
-import { getCachedSolved, setCachedSolved } from "../../utils/solved-cache";
+import { setSolvedSlugs, setFetchedToday } from "../../utils/solved-cache";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -29,22 +29,6 @@ export default function AuthModal({ isOpen, onClose, onSolved }: AuthModalProps)
 
     const trimmedUser = username.trim();
 
-    // Check localStorage cache before hitting the API
-    const cached = getCachedSolved(trimmedUser);
-    if (cached) {
-      console.log("Using cached solved data");
-      const localRes = await fetch("/data/algo-problems.json");
-      if (!localRes.ok) {
-        setUpdateError("Failed to load local problem list.");
-        return;
-      }
-      const localData: AlgoProblemsData = await localRes.json();
-      const solvedSet = new Set(cached);
-      onSolved(new Set(collectLocalSlugs(localData).filter((s) => !solvedSet.has(s))));
-      onClose();
-      return;
-    }
-
     setIsUpdating(true);
     try {
       // 1. Fetch solved problems from server-side API route
@@ -62,8 +46,10 @@ export default function AuthModal({ isOpen, onClose, onSolved }: AuthModalProps)
       }
       const solvedData: FetchResult = await solvedRes.json();
 
-      // 2. Cache the result
-      setCachedSolved(trimmedUser, solvedData.solvedProblems.map((p) => p.titleSlug));
+      // 2. Persist solved slugs (for display) and mark today as fetched (rate limit)
+      const slugList = solvedData.solvedProblems.map((p) => p.titleSlug);
+      setSolvedSlugs(trimmedUser, slugList);
+      setFetchedToday(trimmedUser);
 
       // 3. Fetch local algo-problems.json for the full slug list
       const localRes = await fetch("/data/algo-problems.json");
@@ -74,9 +60,7 @@ export default function AuthModal({ isOpen, onClose, onSolved }: AuthModalProps)
       const localData: AlgoProblemsData = await localRes.json();
 
       // 4. Compute unsolved problems
-      const solvedSlugs = new Set(
-        solvedData.solvedProblems.map((p) => p.titleSlug),
-      );
+      const solvedSlugs = new Set(slugList);
       const unsolved = collectLocalSlugs(localData).filter(
         (slug) => !solvedSlugs.has(slug),
       );
