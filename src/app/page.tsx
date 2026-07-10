@@ -1,29 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import AlgoMap from "../components/AlgoMap/AlgoMap";
 import AuthModal from "../components/AuthModal/AuthModal";
 
 import type { AlgoProblemsData } from "../utils/fetch-leetcode-data";
 import { collectLocalSlugs } from "../utils/fetch-leetcode-data";
-import { getCachedSolved, getLastUsedUsername } from "../utils/solved-cache";
+import { getSolvedSlugs, canFetch, getLastUsedUsername } from "../utils/solved-cache";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [unsolvedSlugs, setUnsolvedSlugs] = useState<Set<string>>(new Set());
 
-  // On mount, try to restore cached solved state for the last used username
+  // Derived from localStorage — no hydration mismatch because the server
+  // snapshot returns false, which matches the client's first paint.
+  const hasValidCache = useSyncExternalStore(
+    () => () => {}, // subscribe — localStorage won't change mid-session
+    () => {
+      const lastUser = getLastUsedUsername();
+      return lastUser ? !canFetch(lastUser) : false;
+    },
+    () => false, // server snapshot
+  );
+
+  // On mount: load display data from persistent cache
   useEffect(() => {
     const lastUser = getLastUsedUsername();
     if (!lastUser) return;
 
-    const cached = getCachedSolved(lastUser);
-    if (!cached) return;
+    const slugs = getSolvedSlugs(lastUser);
+    if (!slugs) return;
 
     fetch("/data/algo-problems.json")
       .then((res) => res.json() as Promise<AlgoProblemsData>)
       .then((localData) => {
-        const solvedSet = new Set(cached);
+        const solvedSet = new Set(slugs);
         setUnsolvedSlugs(
           new Set(collectLocalSlugs(localData).filter((s) => !solvedSet.has(s))),
         );
@@ -32,6 +43,10 @@ export default function Home() {
         /* ignore – user can re-fetch via the Update button */
       });
   }, []);
+
+  const handleSolved = (slugs: Set<string>) => {
+    setUnsolvedSlugs(slugs);
+  };
 
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
@@ -57,22 +72,24 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Update Your Map button */}
-        <div className="w-full flex justify-center sm:justify-start items-center gap-3 mb-4">
-          <p>Want to see how you are doing?</p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
-          >
-            Update Your Map
-          </button>
-        </div>
+        {/* Update Your Map CTA — only shown when rate limit has reset */}
+        {!hasValidCache && (
+          <div className="w-full flex justify-center sm:justify-start items-center gap-3 mb-4">
+            <p>Want to see how you are doing?</p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="cursor-pointer rounded-md bg-blue-600 px-2.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors"
+            >
+              Update Your Map
+            </button>
+          </div>
+        )}
       </main>
 
       <AuthModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSolved={setUnsolvedSlugs}
+        onSolved={handleSolved}
       />
     </div>
   );
