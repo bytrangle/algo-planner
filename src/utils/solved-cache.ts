@@ -8,38 +8,55 @@ function todayICT(): string {
   }).format();
 }
 
-const CACHE_PREFIX = "algomap-solved-";
+const SLUGS_PREFIX = "algomap-slugs-";
+const FETCH_PREFIX = "algomap-fetch-";
 const LAST_USERNAME_KEY = "algomap-last-username";
 
-interface SolvedCache {
-  dateICT: string;
-  solvedSlugs: string[];
-}
+// ---- Persistent solved slugs (for display) ----
 
-export function getCachedSolved(username: string): string[] | null {
+export function getSolvedSlugs(username: string): string[] | null {
   try {
-    const raw = localStorage.getItem(CACHE_PREFIX + username);
+    const raw = localStorage.getItem(SLUGS_PREFIX + username);
     if (!raw) return null;
-    const entry: SolvedCache = JSON.parse(raw);
-    if (entry.dateICT !== todayICT()) {
-      localStorage.removeItem(CACHE_PREFIX + username);
-      return null;
-    }
-    return entry.solvedSlugs;
+    return JSON.parse(raw) as string[];
   } catch {
     return null;
   }
 }
 
-export function setCachedSolved(username: string, solvedSlugs: string[]): void {
-  const entry: SolvedCache = { dateICT: todayICT(), solvedSlugs };
+export function setSolvedSlugs(username: string, solvedSlugs: string[]): void {
   try {
-    localStorage.setItem(CACHE_PREFIX + username, JSON.stringify(entry));
+    localStorage.setItem(SLUGS_PREFIX + username, JSON.stringify(solvedSlugs));
     localStorage.setItem(LAST_USERNAME_KEY, username);
   } catch {
     /* storage full or unavailable — no-op */
   }
 }
+
+// ---- Rate-limit gate (one fetch per calendar day) ----
+
+/** Returns true if the user has already fetched today (rate-limited). */
+export function canFetch(username: string): boolean {
+  try {
+    const raw = localStorage.getItem(FETCH_PREFIX + username);
+    if (!raw) return true; // no fetch recorded → allowed
+    const dateICT = JSON.parse(raw) as string;
+    return dateICT !== todayICT(); // allowed if last fetch was on a different day
+  } catch {
+    return true;
+  }
+}
+
+/** Record that the user fetched today. */
+export function setFetchedToday(username: string): void {
+  try {
+    localStorage.setItem(FETCH_PREFIX + username, JSON.stringify(todayICT()));
+  } catch {
+    /* no-op */
+  }
+}
+
+// ---- Last used username ----
 
 export function getLastUsedUsername(): string | null {
   try {
