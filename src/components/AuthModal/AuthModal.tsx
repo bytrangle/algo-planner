@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 
-import type { FetchResult, AlgoProblemsData } from "../../utils/fetch-leetcode-data";
-import { collectLocalSlugs } from "../../utils/fetch-leetcode-data";
-import { setSolvedSlugs, setFetchedToday } from "../../utils/solved-cache";
+import type { FetchResult } from "../../utils/fetch-leetcode-data";
+import { setSolvedTimestamps, setFetchedToday } from "../../utils/solved-cache";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSolved: (unsolvedSlugs: Set<string>) => void;
+  onSolved: () => void;
 }
 
 export default function AuthModal({ isOpen, onClose, onSolved }: AuthModalProps) {
@@ -46,27 +45,16 @@ export default function AuthModal({ isOpen, onClose, onSolved }: AuthModalProps)
       }
       const solvedData: FetchResult = await solvedRes.json();
 
-      // 2. Persist solved slugs (for display) and mark today as fetched (rate limit)
-      const slugList = solvedData.solvedProblems.map((p) => p.titleSlug);
-      setSolvedSlugs(trimmedUser, slugList);
+      // 2. Build timestamp map, persist it, and mark today as fetched
+      const timestamps: Record<string, string> = {};
+      for (const p of solvedData.solvedProblems) {
+        timestamps[p.titleSlug] = p.lastSubmittedAt;
+      }
+      setSolvedTimestamps(trimmedUser, timestamps);
       setFetchedToday(trimmedUser);
 
-      // 3. Fetch local algo-problems.json for the full slug list
-      const localRes = await fetch("/data/algo-problems.json");
-      if (!localRes.ok) {
-        setUpdateError("Failed to load local problem list.");
-        return;
-      }
-      const localData: AlgoProblemsData = await localRes.json();
-
-      // 4. Compute unsolved problems
-      const solvedSlugs = new Set(slugList);
-      const unsolved = collectLocalSlugs(localData).filter(
-        (slug) => !solvedSlugs.has(slug),
-      );
-
-      // 5. Notify parent and close on success
-      onSolved(new Set(unsolved));
+      // 3. Notify parent and close on success
+      onSolved();
       onClose();
     } catch (e) {
       console.error(e);

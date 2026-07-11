@@ -46,6 +46,12 @@ export interface FetchResult {
   totalSolved: number;
 }
 
+/**
+ * A map of problem slug → lastSubmittedAt (Unix seconds as a string).
+ * Convenient for passing cached solved data to the AlgoMap for rendering.
+ */
+export type SolvedTimestamps = Record<string, string>;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as d3 from 'd3'
+import type { SolvedTimestamps } from '../../utils/fetch-leetcode-data'
 
 // Types
 interface Problem {
@@ -282,17 +283,32 @@ function computeLayout(data:{ topics: Topic[] }, width: number, height: number):
 }
 
 interface AlgoMapProps {
-  unsolvedSlugs?: Set<string>;
+  solvedTimestamps?: SolvedTimestamps | null;
+}
+
+/** Compute visual radius from a lastSubmittedAt timestamp (Unix seconds string).
+ *
+ *  ≤1 month → 5, 1–3 months → 10, 3–6 months → 15, >6 months → 20 (px). */
+function solvedRadius(lastSubmittedAt: string): number {
+  const elapsed = Date.now() - Number(lastSubmittedAt) * 1000;
+  const msPerMonth = 30 * 24 * 60 * 60 * 1000;
+  const months = elapsed / msPerMonth;
+
+  if (months <= 1) return 5;
+  if (months <= 3) return 10;
+  if (months <= 6) return 15;
+  return 20;
 }
 
 // Main component
-export default function AlgoMap({ unsolvedSlugs }: AlgoMapProps) {
+export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
   const [data, setData] = useState<AlgoMapData | null>(null)
   const [hoveredProblem, setHoveredProblem] = useState<{
     problem: Problem;
     x: number;
     y: number;
     seriesName?: string;
+    lastSolved?: string;
   } | null>(null)
   const width = 1400
   const height = 1400
@@ -320,9 +336,10 @@ export default function AlgoMap({ unsolvedSlugs }: AlgoMapProps) {
     problem: Problem,
     x: number,
     y: number,
-    seriesName?: string
+    seriesName?: string,
+    lastSolved?: string,
   ) => {
-    setHoveredProblem({ problem, x, y, seriesName })
+    setHoveredProblem({ problem, x, y, seriesName, lastSolved })
   }, [])
 
   const handleProblemLeave = useCallback(() => {
@@ -394,22 +411,35 @@ export default function AlgoMap({ unsolvedSlugs }: AlgoMapProps) {
       {problemNodes.map(node => {
         const problem = node.data.problem
         if (!problem) return null
-        const isUnsolved = unsolvedSlugs?.has(problem.slug)
+        const timestamp = solvedTimestamps?.[problem.slug]
+        // When no cache exists yet, show all problems as uniform filled circles
+        // by difficulty.  When cache exists, size by recency and hollow unsolved.
+        const uniform = !solvedTimestamps
+        const r = uniform ? SPACING.PROBLEM_RADIUS
+          : timestamp ? solvedRadius(timestamp)
+          : SPACING.PROBLEM_RADIUS
         return (
           <circle
             key={node.id}
             cx={node.x}
             cy={node.y}
-            r={node.r}
-            fill={isUnsolved ? "none" : DIFFICULTY_COLORS[problem.difficulty]}
-            stroke={isUnsolved ? DIFFICULTY_COLORS[problem.difficulty] : undefined}
-            strokeWidth={isUnsolved ? 2 : undefined}
+            r={r}
+            fill={uniform ? DIFFICULTY_COLORS[problem.difficulty]
+              : timestamp ? DIFFICULTY_COLORS[problem.difficulty]
+              : "none"}
+            stroke={uniform ? undefined
+              : timestamp ? undefined
+              : DIFFICULTY_COLORS[problem.difficulty]}
+            strokeWidth={uniform ? undefined
+              : timestamp ? undefined
+              : 2}
             className="hover:opacity-80 transition-opacity"
             onMouseEnter={() => handleProblemHover(
               problem,
               node.x,
               node.y,
-              node.data.series?.name
+              node.data.series?.name,
+              timestamp,
             )}
             onMouseLeave={handleProblemLeave}
           />
@@ -419,7 +449,7 @@ export default function AlgoMap({ unsolvedSlugs }: AlgoMapProps) {
       {hoveredProblem && (
         <foreignObject
           x={hoveredProblem.x + 15}
-          y={hoveredProblem.y - (hoveredProblem.seriesName ? 55 : 40)}
+          y={hoveredProblem.y - (hoveredProblem.seriesName ? 65 : 50)}
           width={240}
           height={120}
         >
@@ -432,6 +462,11 @@ export default function AlgoMap({ unsolvedSlugs }: AlgoMapProps) {
             <div className="text-sm text-gray-900 break-words leading-tight">
               {hoveredProblem.problem.title}
             </div>
+            {hoveredProblem.lastSolved && (
+              <div className="text-xs text-gray-500 mt-1">
+                Last solved: {new Date(Number(hoveredProblem.lastSolved) * 1000).toLocaleDateString()}
+              </div>
+            )}
           </div>
         </foreignObject>
       )}

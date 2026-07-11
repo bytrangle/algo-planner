@@ -1,51 +1,64 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import AlgoMap from "../components/AlgoMap/AlgoMap";
 import AuthModal from "../components/AuthModal/AuthModal";
 
-import type { AlgoProblemsData } from "../utils/fetch-leetcode-data";
-import { collectLocalSlugs } from "../utils/fetch-leetcode-data";
-import { getSolvedSlugs, canFetch, getLastUsedUsername } from "../utils/solved-cache";
+import type { SolvedTimestamps } from "../utils/fetch-leetcode-data";
+import { getSolvedTimestamps, canFetch, getLastUsedUsername } from "../utils/solved-cache";
+
+// Module-level cached snapshots so useSyncExternalStore sees stable
+// references on successive calls, avoiding the infinite-loop detection.
+let _tsCache: SolvedTimestamps | null = null;
+let _tsCached = false;
+let _cacheValid = false;
+
+function getTimestampsSnapshot(): SolvedTimestamps | null {
+  if (_tsCached) return _tsCache;
+  const lastUser = getLastUsedUsername();
+  _tsCache = lastUser ? getSolvedTimestamps(lastUser) : null;
+  _tsCached = true;
+  return _tsCache;
+}
+
+function getHasValidCacheSnapshot(): boolean {
+  if (_cacheValid) return true;
+  const lastUser = getLastUsedUsername();
+  _cacheValid = lastUser ? !canFetch(lastUser) : false;
+  return _cacheValid;
+}
+
+// When AuthModal writes to localStorage we need the snapshots to
+// refresh.  We dispatch a custom event that subscribe catches.
+function notifyStorageChange() {
+  _tsCached = false;
+  _cacheValid = false;
+  window.dispatchEvent(new Event("algomap-storage-change"));
+}
+
+function subscribe(onStoreChange: () => void): () => void {
+  window.addEventListener("algomap-storage-change", onStoreChange);
+  return () => window.removeEventListener("algomap-storage-change", onStoreChange);
+}
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [unsolvedSlugs, setUnsolvedSlugs] = useState<Set<string>>(new Set());
 
-  // Derived from localStorage — no hydration mismatch because the server
-  // snapshot returns false, which matches the client's first paint.
-  const hasValidCache = useSyncExternalStore(
-    () => () => {}, // subscribe — localStorage won't change mid-session
-    () => {
-      const lastUser = getLastUsedUsername();
-      return lastUser ? !canFetch(lastUser) : false;
-    },
-    () => false, // server snapshot
+  const solvedTimestamps = useSyncExternalStore(
+    subscribe,
+    getTimestampsSnapshot,
+    () => null, // server snapshot — always null/false avoids hydration mismatch
   );
 
-  // On mount: load display data from persistent cache
-  useEffect(() => {
-    const lastUser = getLastUsedUsername();
-    if (!lastUser) return;
+  const hasValidCache = useSyncExternalStore(
+    subscribe,
+    getHasValidCacheSnapshot,
+    () => false,
+  );
 
-    const slugs = getSolvedSlugs(lastUser);
-    if (!slugs) return;
-
-    fetch("/data/algo-problems.json")
-      .then((res) => res.json() as Promise<AlgoProblemsData>)
-      .then((localData) => {
-        const solvedSet = new Set(slugs);
-        setUnsolvedSlugs(
-          new Set(collectLocalSlugs(localData).filter((s) => !solvedSet.has(s))),
-        );
-      })
-      .catch(() => {
-        /* ignore – user can re-fetch via the Update button */
-      });
-  }, []);
-
-  const handleSolved = (slugs: Set<string>) => {
-    setUnsolvedSlugs(slugs);
+  const handleSolved = () => {
+    notifyStorageChange();
+    setIsModalOpen(false);
   };
 
   return (
@@ -67,7 +80,7 @@ export default function Home() {
         <div className="w-screen relative left-1/2 -translate-x-1/2 mb-4">
           {/* Second div prevents svg from getting too wide on huge screen */}
           <div className="max-w-7xl mx-auto px-4">
-            <AlgoMap unsolvedSlugs={unsolvedSlugs} />
+            <AlgoMap solvedTimestamps={solvedTimestamps} />
             <div className="text-center mt-2"><small>Source: <a className="underline decoration-blue-600" href="https://labuladong.online/en/algo">labuladong.online</a></small></div>
           </div>
         </div>
