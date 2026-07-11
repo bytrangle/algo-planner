@@ -286,11 +286,31 @@ interface AlgoMapProps {
   solvedTimestamps?: SolvedTimestamps | null;
 }
 
-/** Compute visual radius from a lastSubmittedAt timestamp (Unix seconds string).
+/** Parse a lastSubmittedAt string to milliseconds.  The API may return
+ *  seconds (10-digit), milliseconds (13-digit), or an ISO string. */
+function parseTimestampMs(lastSubmittedAt: string): number {
+  // Try numeric parse first
+  const n = Number(lastSubmittedAt);
+  if (!isNaN(n)) {
+    // > 1e12 suggests the value is already in milliseconds
+    return n > 1e12 ? n : n * 1000;
+  }
+  // Fall back to Date.parse for ISO strings
+  return Date.parse(lastSubmittedAt);
+}
+
+/** Format a lastSubmittedAt string to ISO date (YYYY-MM-DD). */
+function formatSolvedDate(lastSubmittedAt: string): string {
+  const ms = parseTimestampMs(lastSubmittedAt);
+  if (isNaN(ms)) return "Unknown";
+  return new Date(ms).toISOString().split("T")[0];
+}
+
+/** Compute visual radius from a lastSubmittedAt timestamp.
  *
  *  ≤1 month → 5, 1–3 months → 10, 3–6 months → 15, >6 months → 20 (px). */
 function solvedRadius(lastSubmittedAt: string): number {
-  const elapsed = Date.now() - Number(lastSubmittedAt) * 1000;
+  const elapsed = Date.now() - parseTimestampMs(lastSubmittedAt);
   const msPerMonth = 30 * 24 * 60 * 60 * 1000;
   const months = elapsed / msPerMonth;
 
@@ -339,6 +359,7 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
     seriesName?: string,
     lastSolved?: string,
   ) => {
+    if (lastSolved) console.log("lastSolved raw:", lastSolved, "parsed:", formatSolvedDate(lastSolved));
     setHoveredProblem({ problem, x, y, seriesName, lastSolved })
   }, [])
 
@@ -464,7 +485,7 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
             </div>
             {hoveredProblem.lastSolved && (
               <div className="text-xs text-gray-500 mt-1">
-                Last solved: {new Date(Number(hoveredProblem.lastSolved) * 1000).toLocaleDateString()}
+                Last solved: {formatSolvedDate(hoveredProblem.lastSolved)}
               </div>
             )}
           </div>
