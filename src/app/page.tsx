@@ -79,7 +79,7 @@ export default function Home() {
         {/* First div escapes the `max-w-3xl` constraint by the main layout */}
         <div className="w-screen relative left-1/2 -translate-x-1/2 mb-4">
           {/* Second div prevents svg from getting too wide on huge screen */}
-          <div className="max-w-7xl mx-auto px-4">
+          <div className="max-w-[1600px] mx-auto px-4">
             <AlgoMap solvedTimestamps={solvedTimestamps} />
             <div className="text-center mt-2"><small>Source: <a className="underline decoration-blue-600" href="https://labuladong.online/en/algo">labuladong.online</a></small></div>
           </div>

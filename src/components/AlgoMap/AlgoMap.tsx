@@ -376,7 +376,8 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
   }
 
   return (
-    <svg width={width} height={height} viewBox="-100 -100 1600 1600" className="w-full h-auto bg-white rounded-lg shadow-lg">
+    <div className="flex flex-col sm:flex-row gap-6 xl:gap-8 2xl:gap-10">
+      <svg width={width} height={height} viewBox="-100 -100 1600 1600" className="w-full xl:w-[1000px] 2xl:w-[1200px] h-auto bg-white rounded-lg shadow-lg shrink-0">
       {/* Topic borders (solid) */}
       {topicNodes.map(node => (
         <circle
@@ -492,5 +493,63 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
         </foreignObject>
       )}
     </svg>
+
+      {/* Annotation legend */}
+      <div className="w-72 xl:w-80 shrink-0 space-y-6 pt-4 sm:pt-8 text-sm">
+        {/* Group 1: Status */}
+        <div>
+          <div className="font-semibold text-gray-900 mb-2 text-center">Status</div>
+          <div className="flex justify-around items-center">
+            <div className="flex flex-col items-center gap-1">
+              <svg width="20" height="20" viewBox="0 0 20 20" className="block">
+                <circle cx="10" cy="10" r="7" fill="none" stroke={DIFFICULTY_COLORS.Easy} strokeWidth="2" />
+              </svg>
+              <span className="text-xs text-gray-500">unsolved</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <svg width="20" height="20" viewBox="0 0 20 20" className="block">
+                <circle cx="10" cy="10" r="7" fill={DIFFICULTY_COLORS.Easy} />
+              </svg>
+              <span className="text-xs text-gray-500">solved</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Group 2: Difficulty Level */}
+        <div>
+          <div className="font-semibold text-gray-900 mb-2 text-center">Difficulty Level</div>
+          <div className="flex justify-around items-center">
+            {(["Easy", "Medium", "Hard"] as const).map((d) => (
+              <div key={d} className="flex flex-col items-center gap-1">
+                <svg width="20" height="20" viewBox="0 0 20 20" className="block">
+                  <circle cx="10" cy="10" r="7" fill={DIFFICULTY_COLORS[d]} />
+                </svg>
+                <span className="text-xs text-gray-500">{d}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Group 3: Last Solved */}
+        <div>
+          <div className="font-semibold text-gray-900 mb-2 text-center">Last Solved</div>
+          <div className="flex gap-x-1 justify-center items-start">
+            {[
+              { r: 5, label: "≤1 mo", desc: "within 1 month" },
+              { r: 10, label: "1-3 mo", desc: "1-3 months ago" },
+              { r: 15, label: "3-6 mo", desc: "3-6 months ago" },
+              { r: 20, label: ">6 mo", desc: "over 6 months ago" },
+            ].map((item) => (
+              <div key={item.r} className="flex flex-col items-center gap-1">
+                <svg width="40" height="40" viewBox="0 0 40 40" className="block">
+                  <circle cx="20" cy="20" r={item.r} fill={DIFFICULTY_COLORS.Easy} />
+                </svg>
+                <span className="text-xs text-gray-500 text-center leading-tight">{item.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
