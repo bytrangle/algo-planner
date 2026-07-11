@@ -477,11 +477,11 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
         >
           <div className="bg-white border border-gray-300 rounded shadow-md px-3 py-2 inline-block min-w-0 max-w-[220px]">
             {hoveredProblem.seriesName && (
-              <div className="text-xs font-mono font-bold text-gray-800 mb-1.5 break-words leading-tight">
+              <div className="text-xs font-mono font-bold text-gray-800 mb-1.5 wrap-break-word leading-tight">
                 {hoveredProblem.seriesName}
               </div>
             )}
-            <div className="text-sm text-gray-900 break-words leading-tight">
+            <div className="text-sm text-gray-900 wrap-break-word leading-tight">
               {hoveredProblem.problem.title}
             </div>
             {hoveredProblem.lastSolved && (

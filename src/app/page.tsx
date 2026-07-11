@@ -28,8 +28,8 @@ function getHasValidCacheSnapshot(): boolean {
   return _cacheValid;
 }
 
-// When AuthModal writes to localStorage we need the snapshots to
-// refresh.  We dispatch a custom event that subscribe catches.
+// Trigger manually when AuthModal writes to localStorage,
+// causing React to re-render with fresh data
 function notifyStorageChange() {
   _tsCached = false;
   _cacheValid = false;
