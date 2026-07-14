@@ -84,7 +84,6 @@ export default function Home() {
             <div className="text-center mt-2"><small>Problems are mentioned on <a className="underline decoration-blue-600" href="https://labuladong.online/en/algo">labuladong.online</a></small></div>
           </div>
         </div>
-
         {/* Update Your Map CTA — only shown when rate limit has reset */}
         {!hasValidCache && (
           <div className="w-full flex justify-center sm:justify-start items-center gap-3 mb-4">
@@ -97,6 +96,37 @@ export default function Home() {
             </button>
           </div>
         )}
+        {/* Chat agent component */}
+        <div className="mt-4">
+          <h2>Study Plan</h2>
+          <p>Tell us your time frame (how long you are going to study) and capacity (number of hours per day and days per week that you can dedicate to studying):.</p>
+          <div className="relative w-full mt-2">
+            <textarea
+              id="study-info"
+              className="w-full min-h-[120px] p-4 pr-14 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., 3 months, 2 hours/day, 5 days/week"
+            />
+            <button
+              className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white shadow-lg transition-colors cursor-pointer"
+              aria-label="Submit"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
       </main>
 
       <AuthModal
