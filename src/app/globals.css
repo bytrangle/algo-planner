@@ -5,6 +5,18 @@
   --foreground: #171717;
 }
 
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Courier New', Courier, monospace;
+  }
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
