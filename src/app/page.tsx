@@ -81,7 +81,7 @@ export default function Home() {
           {/* Second div prevents svg from getting too wide on huge screen */}
           <div className="max-w-[1600px] mx-auto px-4">
             <AlgoMap solvedTimestamps={solvedTimestamps} />
-            <div className="text-center mt-2"><small>Source: <a className="underline decoration-blue-600" href="https://labuladong.online/en/algo">labuladong.online</a></small></div>
+            <div className="text-center mt-2"><small>Problems are mentioned on <a className="underline decoration-blue-600" href="https://labuladong.online/en/algo">labuladong.online</a></small></div>
           </div>
         </div>
 
