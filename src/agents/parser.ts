@@ -5,16 +5,20 @@ import OpenAI from "openai";
 // ---------------------------------------------------------------------------
 
 export interface ParserOutput {
-  timeFrame: string | null;
+  /** Total number of days in the study time frame. */
+  timeFrameDays: number | null;
+  /** Maximum hours the learner can study per day. */
   hoursPerDay: number | null;
-  studyDays: string | null;
+  /** Which days of the week, as numbers: 0=Sun, 1=Mon, …, 6=Sat. */
+  studyDays: number[] | null;
+  /** Clarification question, null when all fields are filled. */
   question: string | null;
 }
 
 export interface ParsedStudyInfo {
-  timeFrame: string | null;
+  timeFrameDays: number | null;
   hoursPerDay: number | null;
-  studyDays: string | null;
+  studyDays: number[] | null;
 }
 
 export interface ChatMessage {
@@ -29,33 +33,36 @@ export interface ChatMessage {
 const SYSTEM_PROMPT = `You are Parser, the first chain in a multi-agent system for designing a smart study plan for data structures and algorithm.
 
 Extract study plan information from the user's messages. You need three fields:
-- timeFrame: how long they plan to study overall (e.g., "3 months", "6 months", "1 year")
-- hoursPerDay: maximum hours per day as a number
-- studyDays: which days of the week (e.g., "Monday to Friday", "Monday, Wednesday, Friday")
+- timeFrameDays: total number of days — compute this yourself.
+  Examples: "3 months" → 90, "6 months" → 180, "1 year" → 365, "2 weeks" → 14, "30 days" → 30
+- hoursPerDay: maximum hours per day.
+  Examples: "2 hours" → 2, "one and a half hours" → 1.5, "1h30m" → 1.5
+- studyDays: which days of the week as numbers (0=Sun, 1=Mon, …, 6=Sat).
+  Examples: "Monday to Friday" → [1,2,3,4,5], "Monday, Wednesday, Friday" → [1,3,5], "weekends" → [0,6], "every day" → [0,1,2,3,4,5,6]
 
 This is a multi-turn conversation. If the user has only sent one message and any fields are missing, respond with what you extracted plus a friendly question asking for everything that's missing:
 {
-  "timeFrame": <value or null>,
+  "timeFrameDays": <number or null>,
   "hoursPerDay": <number or null>,
-  "studyDays": <value or null>,
+  "studyDays": <number array or null>,
   "question": "<one sentence asking for the missing info>"
 }
 
 If the user has already responded to your clarification question (this is the second user message in the conversation), apply these defaults for any field still missing:
-- timeFrame → "3 months"
+- timeFrameDays → 90
 - hoursPerDay → 3
-- studyDays → "all weekdays"
+- studyDays → [1, 2, 3, 4, 5]
 
 Then respond with question set to null:
 {
-  "timeFrame": "...",
+  "timeFrameDays": <number>,
   "hoursPerDay": <number>,
-  "studyDays": "...",
+  "studyDays": [<numbers>],
   "question": null
 }
 
 Rules:
-- For studyDays: if they say a number of days without naming them, default to "Monday to Friday"
+- Compute the CONCRETE values yourself. "3 months" → 90, "6 months" → 180, "30 days" → 30, etc.
 - Do not invent values for missing fields on the first turn — return null and ask
 - On the second turn, apply defaults for anything still missing`;
 
@@ -93,18 +100,22 @@ export async function parseStudyInfo(
 
     const parsed = JSON.parse(jsonStr) as ParserOutput;
     return {
-      timeFrame: typeof parsed.timeFrame === "string" ? parsed.timeFrame : null,
+      timeFrameDays:
+        typeof parsed.timeFrameDays === "number" ? parsed.timeFrameDays : null,
       hoursPerDay:
         typeof parsed.hoursPerDay === "number" ? parsed.hoursPerDay : null,
-      studyDays: typeof parsed.studyDays === "string" ? parsed.studyDays : null,
+      studyDays:
+        Array.isArray(parsed.studyDays)
+          ? (parsed.studyDays as number[]).filter((n) => typeof n === "number")
+          : null,
       question: typeof parsed.question === "string" ? parsed.question : null,
     };
   } catch (err) {
     console.error("Failed to parse study info:", err);
     return {
-      timeFrame: "3 months",
+      timeFrameDays: 90,
       hoursPerDay: 3,
-      studyDays: "all weekdays",
+      studyDays: [1, 2, 3, 4, 5],
       question: null,
     };
   }
