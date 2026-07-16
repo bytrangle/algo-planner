@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { SolvedTimestamps, AlgoProblemsData } from "../utils/fetch-leetcode-data";
-import { collectLocalSlugs } from "../utils/fetch-leetcode-data";
+import type { ProblemWithTopic } from "../utils/flatten-problems";
 
 interface StudyPlanProps {
-  solvedTimestamps: SolvedTimestamps | null;
+  unsolvedProblems: ProblemWithTopic[];
+  solvedProblems: (ProblemWithTopic & { lastSolvedAt: string })[];
 }
 
 interface ParsedStudyInfo {
-  timeFrame: string | null;
+  timeFrameDays: number | null;
   hoursPerDay: number | null;
-  studyDays: string | null;
+  studyDays: number[] | null;
 }
 
 interface ChatMessage {
@@ -28,9 +28,8 @@ interface PlanResponse {
 
 const RUMINATING_ICONS = ["•", "★", "∗", "☀", "❄", "◇"];
 
-export default function StudyPlan({ solvedTimestamps }: StudyPlanProps) {
+export default function StudyPlan({ unsolvedProblems, solvedProblems }: StudyPlanProps) {
   const [draft, setDraft] = useState("");
-  const [allSlugs, setAllSlugs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [done, setDone] = useState(false);
@@ -49,24 +48,10 @@ export default function StudyPlan({ solvedTimestamps }: StudyPlanProps) {
   const needsClarification = history.length === 2 && history[history.length - 1].role === "assistant";
   const lastQuestion = needsClarification ? history[history.length - 1].content : null;
 
-  // Fetch all problem slugs on mount
-  useEffect(() => {
-    fetch("/data/algo-problems.json")
-      .then((r) => r.json())
-      .then((data: AlgoProblemsData) => {
-        setAllSlugs(collectLocalSlugs(data));
-      })
-      .catch(() => {});
-  }, []);
-
   const handleSubmit = useCallback(async (text: string) => {
     if (!text.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
-
-    const unsolvedProblems = allSlugs.filter(
-      (slug) => !(slug in (solvedTimestamps ?? {})),
-    );
 
     try {
       const res = await fetch("/api/plan", {
@@ -75,7 +60,7 @@ export default function StudyPlan({ solvedTimestamps }: StudyPlanProps) {
         body: JSON.stringify({
           message: text,
           history,
-          data: { unsolvedProblems, solvedProblems: solvedTimestamps ?? {} },
+          data: { unsolvedProblems, solvedProblems },
         }),
       });
 
@@ -95,7 +80,7 @@ export default function StudyPlan({ solvedTimestamps }: StudyPlanProps) {
       console.error("Failed to send study plan request:", err);
       setIsSubmitting(false);
     }
-  }, [history, allSlugs, solvedTimestamps, isSubmitting]);
+  }, [history, unsolvedProblems, solvedProblems, isSubmitting]);
 
   const onInitialSubmit = useCallback(() => handleSubmit(draft), [draft, handleSubmit]);
 
