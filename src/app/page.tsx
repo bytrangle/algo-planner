@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
 import AlgoMap from "../components/AlgoMap/AlgoMap";
 import AuthModal from "../components/AuthModal/AuthModal";
 import StudyPlan from "../components/StudyPlan";
 
-import type { SolvedTimestamps } from "../utils/fetch-leetcode-data";
+import type { SolvedTimestamps, AlgoProblemsData } from "../utils/fetch-leetcode-data";
+import { flattenAlgoData, type ProblemWithTopic } from "../utils/flatten-problems";
 import { getSolvedTimestamps, canFetch, getLastUsedUsername } from "../utils/solved-cache";
 
 // Module-level cached snapshots so useSyncExternalStore sees stable
@@ -44,6 +45,7 @@ function subscribe(onStoreChange: () => void): () => void {
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [allProblems, setAllProblems] = useState<ProblemWithTopic[]>([]);
   const solvedTimestamps = useSyncExternalStore(
     subscribe,
     getTimestampsSnapshot,
@@ -55,6 +57,33 @@ export default function Home() {
     getHasValidCacheSnapshot,
     () => false,
   );
+
+  // Fetch and flatten problem data once
+  useEffect(() => {
+    fetch("/data/algo-problems.json")
+      .then((r) => r.json())
+      .then((data: AlgoProblemsData) => setAllProblems(flattenAlgoData(data)))
+      .catch(() => {});
+  }, []);
+
+  // Split problems into unsolved and solved (with timestamps)
+  const { unsolvedProblems, solvedProblems } = useMemo(() => {
+    const unsolved: ProblemWithTopic[] = [];
+    const solved: (ProblemWithTopic & { lastSolvedAt: string })[] = [];
+    if (solvedTimestamps) {
+      for (const p of allProblems) {
+        const ts = solvedTimestamps[p.slug];
+        if (ts) {
+          solved.push({ ...p, lastSolvedAt: ts });
+        } else {
+          unsolved.push(p);
+        }
+      }
+    } else {
+      unsolved.push(...allProblems);
+    }
+    return { unsolvedProblems: unsolved, solvedProblems: solved };
+  }, [allProblems, solvedTimestamps]);
 
   const handleSolved = () => {
     notifyStorageChange();
@@ -98,7 +127,7 @@ export default function Home() {
         )}
         {/* Chat agent component */}
         <div>
-          <StudyPlan solvedTimestamps={solvedTimestamps} />
+          <StudyPlan unsolvedProblems={unsolvedProblems} solvedProblems={solvedProblems} />
         </div>
       </main>
 
