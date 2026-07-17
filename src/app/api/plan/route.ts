@@ -1,80 +1,139 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
-  parseStudyInfo,
+  analyzeStudyPlan,
   type ChatMessage,
-  type ParsedStudyInfo,
-} from "@/src/agents/parser";
-import {
-  designStudyPlan,
-  type DesignerOutput,
-} from "@/src/agents/designer";
+  type AnalystEvent,
+  type StudyPlanParams,
+} from "@/src/agents/analyst";
+import { designStudyPlan, type ParsedStudyInfo } from "@/src/agents/designer";
 import type { ProblemWithTopic } from "@/src/utils/flatten-problems";
 
 // ---------------------------------------------------------------------------
-// Route handler
+// Helpers
+// ---------------------------------------------------------------------------
+
+function sse(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+const encoder = new TextEncoder();
+
+// ---------------------------------------------------------------------------
+// POST /api/plan  (SSE streaming)
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
 
-  const { message, history, data } = body as {
+  const { message, history, username, data } = body as {
     message: string;
     history: ChatMessage[];
+    username: string;
     data?: {
       unsolvedProblems?: ProblemWithTopic[];
       solvedProblems?: (ProblemWithTopic & { lastSolvedAt: string })[];
     };
   };
 
-  console.log("=== /api/plan request ===");
-  console.log("Message:", message);
-  console.log("History:", JSON.stringify(history, null, 2));
+  if (!message || !username) {
+    return new Response(
+      JSON.stringify({ error: "message and username are required" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
-  // Build the conversation: existing history + new user message
-  const messages: ChatMessage[] = [
-    ...(history ?? []),
+  const updatedHistory: ChatMessage[] = [
+    ...history,
     { role: "user" as const, content: message },
   ];
 
-  // ---- Agent 1: Parser ----
-  const result = await parseStudyInfo(messages);
-  console.log("Parser result:", JSON.stringify(result, null, 2));
-
-  const studyInfo: ParsedStudyInfo = {
-    timeFrameDays: result.timeFrameDays,
-    hoursPerDay: result.hoursPerDay,
-    studyDays: result.studyDays,
-  };
-
-  // Append the assistant's response to history
-  const assistantContent =
-    result.question ?? "Study plan information collected.";
-  const updatedHistory: ChatMessage[] = [
-    ...messages,
-    { role: "assistant" as const, content: assistantContent },
+  const allProblems: ProblemWithTopic[] = [
+    ...(data?.unsolvedProblems ?? []),
+    ...(data?.solvedProblems ?? []),
   ];
 
-  // ---- Agent 2: Designer (only when Parser is done) ----
-  let plan: DesignerOutput | null = null;
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: AnalystEvent) => {
+        controller.enqueue(encoder.encode(sse(event.type, event)));
+      };
 
-  if (result.question === null) {
-    try {
-      const allProblems = [
-        ...(data?.unsolvedProblems ?? []),
-        ...(data?.solvedProblems ?? []),
-      ];
-      plan = await designStudyPlan(allProblems, studyInfo);
-      console.log("Designer summary:", JSON.stringify(plan.summary, null, 2));
-    } catch (err) {
-      console.error("Designer failed:", err);
-    }
-  }
+      try {
+        // ---- Agent 1: Analyst (streaming) ----
+        const analystResult = await analyzeStudyPlan(
+          updatedHistory,
+          username,
+          send,
+        );
 
-  return NextResponse.json({
-    ok: result.question === null,
-    question: result.question,
-    history: updatedHistory,
-    studyInfo,
-    plan,
+        // If Analyst needs clarification, stop here
+        if (analystResult.question) {
+          updatedHistory.push({
+            role: "assistant",
+            content: analystResult.question,
+          });
+          controller.enqueue(
+            encoder.encode(
+              sse("done", {
+                stage: "analyzing",
+                question: analystResult.question,
+                reasoning: analystResult.reasoning,
+                conflictExplanation: analystResult.conflictExplanation,
+                history: updatedHistory,
+                studyInfo: analystResult.studyInfo,
+              }),
+            ),
+          );
+          controller.close();
+          return;
+        }
+
+        // ---- Agent 2: Designer ----
+        send({ type: "log", message: "Designing your study plan..." });
+
+        const studyInfo: ParsedStudyInfo = {
+          timeFrameDays: analystResult.studyInfo.timeFrameDays,
+          hoursPerDay: analystResult.studyInfo.hoursPerDay,
+          studyDays: analystResult.studyInfo.studyDays,
+          userCapacity: analystResult.userCapacity,
+        };
+
+        const plan = await designStudyPlan(allProblems, studyInfo);
+
+        updatedHistory.push({
+          role: "assistant",
+          content: analystResult.reasoning,
+        });
+
+        controller.enqueue(
+          encoder.encode(
+            sse("done", {
+              stage: "designing",
+              reasoning: analystResult.reasoning,
+              history: updatedHistory,
+              studyInfo: analystResult.studyInfo,
+              userCapacity: analystResult.userCapacity,
+              plan,
+            }),
+          ),
+        );
+        controller.close();
+      } catch (err) {
+        console.error("Plan error:", err);
+        send({
+          type: "error",
+          message: err instanceof Error ? err.message : "Unknown error",
+        });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
   });
 }

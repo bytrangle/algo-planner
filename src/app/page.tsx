@@ -46,6 +46,7 @@ function subscribe(onStoreChange: () => void): () => void {
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allProblems, setAllProblems] = useState<ProblemWithTopic[]>([]);
+  const [username, setUsername] = useState<string | undefined>(undefined);
   const solvedTimestamps = useSyncExternalStore(
     subscribe,
     getTimestampsSnapshot,
@@ -57,6 +58,12 @@ export default function Home() {
     getHasValidCacheSnapshot,
     () => false,
   );
+
+  // Read LeetCode username from localStorage (client-side only)
+  useEffect(() => {
+    const lastUser = getLastUsedUsername();
+    if (lastUser) setUsername(lastUser);
+  }, [hasValidCache]);
 
   // Fetch and flatten problem data once
   useEffect(() => {
@@ -101,6 +108,7 @@ export default function Home() {
             <p>Practice algorithm problems smarter with the power of visualization and AI.</p>
           </div>
           <div className="mb-3">
+            <h2>Visualization</h2>
             <p className="text-xl">Visualizing common algorithm problems and their associated topics, frameworks and patterns.</p>
           </div>
         </div>
@@ -126,8 +134,10 @@ export default function Home() {
           </div>
         )}
         {/* Chat agent component */}
-        <div>
-          <StudyPlan unsolvedProblems={unsolvedProblems} solvedProblems={solvedProblems} />
+        <div className="w-full">
+          {username && (
+            <StudyPlan username={username} unsolvedProblems={unsolvedProblems} solvedProblems={solvedProblems} />
+          )}
         </div>
       </main>
 

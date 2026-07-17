@@ -1,168 +1,302 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { ProblemWithTopic } from "../utils/flatten-problems";
+import type { StudyPlanParams, UserCapacity } from "../agents/analyst";
+import type { DesignerOutput } from "../agents/designer";
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 interface StudyPlanProps {
+  username: string;
   unsolvedProblems: ProblemWithTopic[];
   solvedProblems: (ProblemWithTopic & { lastSolvedAt: string })[];
 }
 
-interface ParsedStudyInfo {
-  timeFrameDays: number | null;
-  hoursPerDay: number | null;
-  studyDays: number[] | null;
-}
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
 
-interface PlanResponse {
-  ok: boolean;
-  question: string | null;
-  history: ChatMessage[];
-  studyInfo: ParsedStudyInfo;
-}
+type PlanStage =
+  | { stage: "analyzing"; question: string; reasoning: string; conflictExplanation: string | null; history: ChatMessage[]; studyInfo: Partial<StudyPlanParams> }
+  | { stage: "designing"; reasoning: string; history: ChatMessage[]; studyInfo: StudyPlanParams; userCapacity: UserCapacity; plan: DesignerOutput };
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const RUMINATING_ICONS = ["•", "★", "∗", "☀", "❄", "◇"];
+const dayOrder = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function StudyPlan({ unsolvedProblems, solvedProblems }: StudyPlanProps) {
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function StudyPlan({
+  username,
+  unsolvedProblems,
+  solvedProblems,
+}: StudyPlanProps) {
   const [draft, setDraft] = useState("");
+  const [reply, setReply] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [history, setHistory] = useState<ChatMessage[]>([]);
-  const [done, setDone] = useState(false);
-  const [clarificationSent, setClarificationSent] = useState(false);
-  const clarificationInputRef = useRef<HTMLSpanElement>(null);
+  const [thinkingLogs, setThinkingLogs] = useState<string[]>([]);
+  const [reasoning, setReasoning] = useState<string | null>(null);
+  const [result, setResult] = useState<PlanStage | null>(null);
+  const [sent, setSent] = useState(false);
 
-  // Cycle through ruminating icons while submitting
   const [iconIndex, setIconIndex] = useState(0);
   useEffect(() => {
     if (!isSubmitting) return;
-    const id = setInterval(() => setIconIndex((i) => (i + 1) % RUMINATING_ICONS.length), 800);
+    const id = setInterval(
+      () => setIconIndex((i) => (i + 1) % RUMINATING_ICONS.length),
+      800,
+    );
     return () => clearInterval(id);
   }, [isSubmitting]);
 
-  // Derived state
-  const needsClarification = history.length === 2 && history[history.length - 1].role === "assistant";
-  const lastQuestion = needsClarification ? history[history.length - 1].content : null;
+  const isAnalyzing = result?.stage === "analyzing";
+  const isDesigning = result?.stage === "designing";
 
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!text.trim() || isSubmitting) return;
+  // ---------------------------------------------------------------------------
+  // API call — SSE streaming
+  // ---------------------------------------------------------------------------
 
-    setIsSubmitting(true);
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!text.trim() || isSubmitting) return;
+      setIsSubmitting(true);
+      setStreaming(true);
+      setThinkingLogs([]);
+      setReasoning(null);
+      setResult(null);
 
-    try {
-      const res = await fetch("/api/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          history,
-          data: { unsolvedProblems, solvedProblems },
-        }),
-      });
+      try {
+        const res = await fetch("/api/plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: text,
+            history,
+            username,
+            data: { unsolvedProblems, solvedProblems },
+          }),
+        });
 
-      const result: PlanResponse = await res.json();
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No response stream");
 
-      setIsSubmitting(false);
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-      if (result.ok) {
-        setDone(true);
-        setHistory(result.history);
-        setDraft("");
-        console.log("Study plan ready:", result.studyInfo);
-      } else {
-        setHistory(result.history);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          let eventType = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventType = line.slice(7).trim();
+            } else if (line.startsWith("data: ")) {
+              const payload = JSON.parse(line.slice(6));
+              switch (eventType) {
+                case "log":
+                  setThinkingLogs((prev) => [...prev, payload.message]);
+                  break;
+                case "content_delta":
+                  setReasoning((prev) => (prev ?? "") + payload.text);
+                  break;
+                case "done":
+                  setResult(payload);
+                  setHistory(payload.history);
+                  setStreaming(false);
+                  break;
+                case "error":
+                  setStreaming(false);
+                  console.error("Stream error:", payload.message);
+                  break;
+              }
+              eventType = "";
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to send study plan request:", err);
+        setStreaming(false);
+      } finally {
+        setIsSubmitting(false);
+        setReply("");
       }
-    } catch (err) {
-      console.error("Failed to send study plan request:", err);
-      setIsSubmitting(false);
-    }
-  }, [history, unsolvedProblems, solvedProblems, isSubmitting]);
+    },
+    [history, username, unsolvedProblems, solvedProblems, isSubmitting],
+  );
 
-  const onInitialSubmit = useCallback(() => handleSubmit(draft), [draft, handleSubmit]);
+  const onInitialSubmit = useCallback(() => {
+    if (!draft.trim()) return;
+    setSent(true);
+    sendMessage(draft);
+  }, [draft, sendMessage]);
 
-  const onClarificationSubmit = useCallback(() => {
-    const el = clarificationInputRef.current;
-    if (!el || !el.innerText.trim()) return;
-    setClarificationSent(true);
-    handleSubmit(el.innerText.trim());
-  }, [handleSubmit]);
+  const onReplySubmit = useCallback(() => {
+    if (!reply.trim()) return;
+    sendMessage(reply);
+  }, [reply, sendMessage]);
+
+  // ---------------------------------------------------------------------------
+  // Render: Plan (Designing stage)
+  // ---------------------------------------------------------------------------
+
+  if (isDesigning && result?.stage === "designing") {
+    const { studyInfo, userCapacity, plan } = result;
+    return (
+      <div className="w-full mt-4 space-y-6">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5 space-y-3">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Your Study Plan</h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">{result.reasoning}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+              <div className="text-zinc-500 dark:text-zinc-400">Timeframe</div>
+              <div className="font-semibold text-zinc-900 dark:text-zinc-100">{studyInfo.timeFrameDays} days</div>
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+              <div className="text-zinc-500 dark:text-zinc-400">Hours/day</div>
+              <div className="font-semibold text-zinc-900 dark:text-zinc-100">{studyInfo.hoursPerDay}h</div>
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+              <div className="text-zinc-500 dark:text-zinc-400">Study Days</div>
+              <div className="font-semibold text-zinc-900 dark:text-zinc-100">{studyInfo.studyDays.map((d) => dayOrder[d]).join(", ")}</div>
+            </div>
+            <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+              <div className="text-zinc-500 dark:text-zinc-400">Problems</div>
+              <div className="font-semibold text-zinc-900 dark:text-zinc-100">{plan.summary.totalProblems}</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>Velocity: {userCapacity.weeklyVelocity.toFixed(1)} probs/week</span>
+            {userCapacity.isAggressiveTimeline && <span className="text-amber-600 dark:text-amber-400 font-medium">Aggressive timeline</span>}
+          </div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Summary</h4>
+          <div className="grid grid-cols-5 gap-2 text-sm text-center">
+            <div><div className="text-2xl font-bold text-blue-600">{plan.summary.totalProblems}</div><div className="text-zinc-500 text-xs">Problems</div></div>
+            <div><div className="text-2xl font-bold text-green-600">{plan.summary.essentialCount}</div><div className="text-zinc-500 text-xs">Essential</div></div>
+            <div><div className="text-2xl font-bold text-amber-600">{plan.summary.extraCount}</div><div className="text-zinc-500 text-xs">Extra</div></div>
+            <div><div className="text-2xl font-bold text-purple-600">{plan.summary.totalDays}</div><div className="text-zinc-500 text-xs">Days</div></div>
+            <div><div className="text-2xl font-bold text-rose-600">{plan.summary.totalHours}</div><div className="text-zinc-500 text-xs">Hours</div></div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+          <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3">Daily Schedule</h4>
+          <div className="max-h-[500px] overflow-y-auto space-y-2">
+            {plan.plan.filter((d) => d.essential.length > 0 || d.extra.length > 0).map((day, i) => (
+              <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                <div className="w-20 shrink-0 text-right">
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">{day.dayOfWeek.slice(0, 3)}</div>
+                  <div className="text-xs font-mono text-zinc-400 dark:text-zinc-500">{day.date.slice(5)}</div>
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  {day.essential.map((p, j) => (
+                    <div key={`e-${j}`} className="flex items-center gap-2 text-sm">
+                      <span className="w-5 h-5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] font-bold flex items-center justify-center shrink-0">E</span>
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline truncate">{p.title}</a>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${p.difficulty === "Easy" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" : p.difficulty === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>{p.difficulty}</span>
+                    </div>
+                  ))}
+                  {day.extra.map((p, j) => (
+                    <div key={`x-${j}`} className="flex items-center gap-2 text-sm opacity-60">
+                      <span className="w-5 h-5 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 text-[10px] font-bold flex items-center justify-center shrink-0">X</span>
+                      <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline truncate">{p.title}</a>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${p.difficulty === "Easy" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" : p.difficulty === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>{p.difficulty}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <details className="text-xs text-zinc-500 dark:text-zinc-400">
+          <summary className="cursor-pointer">Conversation log</summary>
+          <div className="mt-2 space-y-1 font-mono">
+            {history.map((msg, i) => (
+              <p key={i} className={msg.role === "user" ? "text-blue-600" : "text-zinc-500"}>
+                <span className="select-none">{msg.role === "user" ? ">>>" : ">"}</span>{" "}
+                {msg.content.slice(0, 200)}{msg.content.length > 200 ? "…" : ""}
+              </p>
+            ))}
+          </div>
+        </details>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render: Input
+  // ---------------------------------------------------------------------------
 
   return (
     <>
-      <h2>Study Plan</h2>
-      <p>Tell us your time frame (how long you are going to study) and capacity (number of hours per day and days per week that you can dedicate to studying):.</p>
+      <style>{`
+        @keyframes sweep {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .shimmer-text {
+          background: linear-gradient(90deg,
+            #9ca3af 0%, #9ca3af 35%,
+            #4b5563 50%,
+            #9ca3af 65%, #9ca3af 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: sweep 2s linear infinite;
+        }
+        @media (prefers-color-scheme: dark) {
+          .shimmer-text {
+            background: linear-gradient(90deg,
+              #6b7280 0%, #6b7280 35%,
+              #d1d5db 50%,
+              #6b7280 65%, #6b7280 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+        }
+      `}</style>
 
-      {done ? (
-        <div className="w-full mt-2 font-mono text-sm text-zinc-700 dark:text-zinc-300 space-y-1">
-          {history.map((msg, i) => {
-            if (msg.role === "user") {
-              return (
-                <p key={i}>
-                  <span className="select-none">{">>>"}</span> {msg.content}
-                </p>
-              );
-            }
-            // Skip the final "Study plan information collected." boilerplate
-            if (msg.content === "Study plan information collected.") return null;
-            return (
-              <p key={i}>
-                <span className="select-none">{">"}</span> {msg.content}
-              </p>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="relative w-full mt-2">
+      <div className="w-full mt-2">
+        <h2>Study Plan</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          Tell us your time frame and capacity — e.g. &ldquo;3 months, 2 hours/day, Mon&ndash;Fri&rdquo;.
+        </p>
+
+        {/* Textarea — disabled after first send */}
+        <div className="relative w-full mt-3">
           <textarea
-            id="study-info"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            rows={2}
-            disabled={needsClarification || isSubmitting}
-            className={`w-full p-4 pr-14 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
-            placeholder="e.g., 3 months, 2 hours/day, 5 days/week"
+            rows={3}
+            disabled={sent || isSubmitting}
+            className="w-full p-4 pr-14 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            placeholder="Give me a plan for..."
           />
 
-          {needsClarification ? (
-            <>
-              <div className="mt-2 font-mono text-sm text-zinc-700 dark:text-zinc-300 flex flex-wrap items-start">
-                <span className="mr-1 select-none shrink-0">{">"}</span>
-                <span className="whitespace-pre-wrap shrink-0">{lastQuestion} </span>
-                <span
-                  ref={clarificationInputRef}
-                  contentEditable={!clarificationSent && !isSubmitting}
-                  suppressContentEditableWarning
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      onClarificationSubmit();
-                    }
-                  }}
-                  onPaste={(e) => {
-                    e.preventDefault();
-                    const text = e.clipboardData.getData("text/plain");
-                    document.execCommand("insertText", false, text);
-                  }}
-                  className={`bg-transparent border-b outline-none ${
-                    clarificationSent
-                      ? "border-none text-zinc-500 dark:text-zinc-500 cursor-default"
-                      : "border-zinc-400 dark:border-zinc-500 text-zinc-700 dark:text-zinc-300"
-                  }`}
-                  style={{ minWidth: "20ch", caretShape: clarificationSent ? "auto" : "block" }}
-                  spellCheck={false}
-                />
-              </div>
-              {isSubmitting && (
-                <p className="mt-3 font-mono text-sm text-zinc-500 dark:text-zinc-400">
-                  <span className="inline-block w-[1.2em] text-center">{RUMINATING_ICONS[iconIndex]}</span> Ruminating...
-                </p>
-              )}
-            </>
-          ) : (
+          {(!sent || isSubmitting) && (
             <button
               onClick={onInitialSubmit}
               disabled={!draft.trim() || isSubmitting}
@@ -182,7 +316,64 @@ export default function StudyPlan({ unsolvedProblems, solvedProblems }: StudyPla
             </button>
           )}
         </div>
-      )}
+
+        {/* Streaming: Reasoning toggle + thinking logs */}
+        {(streaming || reasoning) && (
+          <div className="mt-4 space-y-2">
+            <details open={streaming}>
+              <summary className={`cursor-pointer select-none ${streaming ? "shimmer-text font-medium" : "text-zinc-600 dark:text-zinc-400"}`}>
+                Reasoning {streaming ? "↑" : "↓"}
+              </summary>
+              {reasoning && (
+                <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">{reasoning}</p>
+              )}
+              {thinkingLogs.length > 0 && (
+                <details className="mt-2">
+                  <summary className="text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer">Thinking…</summary>
+                  <div className="mt-1 space-y-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 max-h-40 overflow-y-auto">
+                    {thinkingLogs.map((log, i) => (
+                      <p key={i}>{log}</p>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </details>
+          </div>
+        )}
+
+        {/* Analyst response: question + reply input */}
+        {isAnalyzing && result?.stage === "analyzing" && (
+          <div className="mt-4 space-y-3">
+            {result.conflictExplanation && (
+              <p className="text-sm text-amber-700 dark:text-amber-300">{result.conflictExplanation}</p>
+            )}
+            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{result.question}</p>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") onReplySubmit(); }}
+                disabled={isSubmitting}
+                placeholder='e.g. "yes", "stick to my plan", "Mon-Fri"...'
+                className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              />
+              <button
+                onClick={onReplySubmit}
+                disabled={!reply.trim() || isSubmitting}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-sm font-medium text-white transition-colors cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <span className="inline-block w-[1em] text-center">{RUMINATING_ICONS[iconIndex]}</span>
+                ) : (
+                  "Send"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }

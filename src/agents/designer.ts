@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ParsedStudyInfo } from "./parser";
+import type { StudyPlanParams, UserCapacity } from "./analyst";
 import type { ProblemWithTopic } from "../utils/flatten-problems";
 
 // ---------------------------------------------------------------------------
@@ -7,6 +7,10 @@ import type { ProblemWithTopic } from "../utils/flatten-problems";
 // ---------------------------------------------------------------------------
 
 export type { ProblemWithTopic } from "../utils/flatten-problems";
+
+export interface ParsedStudyInfo extends StudyPlanParams {
+  userCapacity?: UserCapacity;
+}
 
 export type Priority = "essential" | "extra";
 
