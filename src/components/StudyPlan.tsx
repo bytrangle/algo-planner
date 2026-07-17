@@ -163,6 +163,18 @@ export default function StudyPlan({
     const { studyInfo, userCapacity, plan } = result;
     return (
       <div className="w-full mt-4 space-y-6">
+        {/* User messages */}
+        <div className="space-y-1 font-mono text-sm">
+          {history
+            .filter((m) => m.role === "user")
+            .map((m, i) => (
+              <p key={i} className="text-zinc-700 dark:text-zinc-300">
+                <span className="select-none text-zinc-400 dark:text-zinc-500 mr-2">{">"}</span>
+                {m.content}
+              </p>
+            ))}
+        </div>
+
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5 space-y-3">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Your Study Plan</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{result.reasoning}</p>
@@ -283,18 +295,17 @@ export default function StudyPlan({
           Tell us your time frame and capacity — e.g. &ldquo;3 months, 2 hours/day, Mon&ndash;Fri&rdquo;.
         </p>
 
-        {/* Textarea — disabled after first send */}
-        <div className="relative w-full mt-3">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={3}
-            disabled={sent || isSubmitting}
-            className="w-full p-4 pr-14 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            placeholder="Give me a plan for..."
-          />
-
-          {(!sent || isSubmitting) && (
+        {/* User messages — textarea before send, plain text after */}
+        {!sent ? (
+          <div className="relative w-full mt-3">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={3}
+              disabled={isSubmitting}
+              className="w-full p-4 pr-14 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-black dark:text-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              placeholder="Give me a plan for..."
+            />
             <button
               onClick={onInitialSubmit}
               disabled={!draft.trim() || isSubmitting}
@@ -312,8 +323,19 @@ export default function StudyPlan({
                 </svg>
               )}
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-1 font-mono text-sm">
+            {history
+              .filter((m) => m.role === "user")
+              .map((m, i) => (
+                <p key={i} className="text-zinc-700 dark:text-zinc-300">
+                  <span className="select-none text-zinc-400 dark:text-zinc-500 mr-2">{">"}</span>
+                  {m.content}
+                </p>
+              ))}
+          </div>
+        )}
 
         {/* Streaming: Reasoning toggle + thinking logs */}
         {(streaming || reasoning) && (
