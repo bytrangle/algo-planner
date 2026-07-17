@@ -250,31 +250,29 @@ export default function StudyPlan({
   return (
     <>
       <style>{`
-        @keyframes sweep {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+        @keyframes shimmer {
+          0% { background-position: 100% 0; }
+          100% { background-position: 0% 0; }
         }
         .shimmer-text {
-          background: linear-gradient(90deg,
-            #9ca3af 0%, #9ca3af 35%,
-            #4b5563 50%,
-            #9ca3af 65%, #9ca3af 100%);
-          background-size: 200% 100%;
+          background-image: linear-gradient(90deg,
+            rgba(156, 163, 175, 0.4) calc(50% - 8px),
+            rgba(55, 65, 81, 1) 50%,
+            rgba(156, 163, 175, 0.4) calc(50% + 8px));
+          background-size: 250% 100%;
+          background-repeat: no-repeat;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
-          animation: sweep 2s linear infinite;
+          color: transparent;
+          animation: shimmer 2.5s linear infinite;
         }
         @media (prefers-color-scheme: dark) {
           .shimmer-text {
-            background: linear-gradient(90deg,
-              #6b7280 0%, #6b7280 35%,
-              #d1d5db 50%,
-              #6b7280 65%, #6b7280 100%);
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            background-image: linear-gradient(90deg,
+              rgba(107, 114, 128, 0.4) calc(50% - 8px),
+              rgba(209, 213, 219, 1) 50%,
+              rgba(107, 114, 128, 0.4) calc(50% + 8px));
           }
         }
       `}</style>
@@ -345,9 +343,9 @@ export default function StudyPlan({
         {isAnalyzing && result?.stage === "analyzing" && (
           <div className="mt-4 space-y-3">
             {result.conflictExplanation && (
-              <p className="text-sm text-amber-700 dark:text-amber-300">{result.conflictExplanation}</p>
+              <p className="text-amber-700 dark:text-amber-300">{result.conflictExplanation}</p>
             )}
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{result.question}</p>
+            <p className="font-medium text-zinc-800 dark:text-zinc-200">{result.question}</p>
 
             <div className="flex gap-2">
               <input
