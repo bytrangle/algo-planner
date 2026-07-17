@@ -3,7 +3,6 @@ import {
   analyzeStudyPlan,
   type ChatMessage,
   type AnalystEvent,
-  type StudyPlanParams,
 } from "@/src/agents/analyst";
 import { designStudyPlan, type ParsedStudyInfo } from "@/src/agents/designer";
 import type { ProblemWithTopic } from "@/src/utils/flatten-problems";
