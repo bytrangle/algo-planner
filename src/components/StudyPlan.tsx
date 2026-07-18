@@ -151,6 +151,7 @@ export default function StudyPlan({
                   setResult(payload);
                   setHistory(payload.history);
                   setStreaming(false);
+                  setSent(true);
                   // Capture Analyst's question for the final chronological view
                   if (payload.stage === "analyzing") {
                     setSavedAnalysis({
@@ -181,7 +182,6 @@ export default function StudyPlan({
 
   const onInitialSubmit = useCallback(() => {
     if (!draft.trim()) return;
-    setSent(true);
     sendMessage(draft);
   }, [draft, sendMessage]);
 
