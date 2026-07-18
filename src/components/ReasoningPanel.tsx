@@ -73,17 +73,11 @@ export default function ReasoningPanel({
         </svg>
       </div>
 
-      {/* Body — only when open */}
+      {/* Body — only when open. Thinking first (arrives first), then reasoning. */}
       {open && (
         <div className="mt-2 pl-5">
-          {reasoning && (
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">
-              {reasoning}
-            </p>
-          )}
-
           {thinkingLogs.length > 0 && (
-            <details className="mt-2">
+            <details className="mb-2">
               <summary className="text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer">
                 Thinking…
               </summary>
@@ -93,6 +87,12 @@ export default function ReasoningPanel({
                 ))}
               </div>
             </details>
+          )}
+
+          {reasoning && (
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+              {reasoning}
+            </p>
           )}
         </div>
       )}
