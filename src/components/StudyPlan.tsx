@@ -219,8 +219,8 @@ export default function StudyPlan({
   return (
     <div className="w-full mt-2">
         <h2>Study Plan</h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Tell us your time frame and capacity — e.g. &ldquo;3 months, 2 hours/day, Mon&ndash;Fri&rdquo;.
+        <p className="mt-1">
+          In order to craft the best possible plan, please share your study preferences. <em>How long </em>are you going to study? <em>How many hours </em>you can practice per day? Do you want <em>days off</em>? If you don&apos;t know, no worry. We&apos;ll make it work.
         </p>
 
         {/* User messages — textarea before send, plain text after */}
