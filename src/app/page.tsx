@@ -46,7 +46,13 @@ function subscribe(onStoreChange: () => void): () => void {
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allProblems, setAllProblems] = useState<ProblemWithTopic[]>([]);
-  const [username, setUsername] = useState<string | undefined>(undefined);
+  const [mounted, setMounted] = useState(false);
+  const [username, setUsername] = useState<string | undefined>(
+    () => getLastUsedUsername() || undefined,
+  );
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- standard client-only guard
+  useEffect(() => { setMounted(true); }, []);
   const solvedTimestamps = useSyncExternalStore(
     subscribe,
     getTimestampsSnapshot,
@@ -58,12 +64,6 @@ export default function Home() {
     getHasValidCacheSnapshot,
     () => false,
   );
-
-  // Read LeetCode username from localStorage (client-side only)
-  useEffect(() => {
-    const lastUser = getLastUsedUsername();
-    if (lastUser) setUsername(lastUser);
-  }, [hasValidCache]);
 
   // Fetch and flatten problem data once
   useEffect(() => {
@@ -92,7 +92,8 @@ export default function Home() {
     return { unsolvedProblems: unsolved, solvedProblems: solved };
   }, [allProblems, solvedTimestamps]);
 
-  const handleSolved = () => {
+  const handleDone = (username: string) => {
+    setUsername(username);
     notifyStorageChange();
     setIsModalOpen(false);
   };
@@ -133,9 +134,9 @@ export default function Home() {
             </button>
           </div>
         )}
-        {/* Chat agent component */}
+        {/* Chat agent component — client-only to avoid SSR hydration mismatch */}
         <div className="w-full">
-          {username && (
+          {mounted && username && (
             <StudyPlan username={username} unsolvedProblems={unsolvedProblems} solvedProblems={solvedProblems} />
           )}
         </div>
@@ -144,7 +145,7 @@ export default function Home() {
       <AuthModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSolved={handleSolved}
+        onDone={handleDone}
       />
     </div>
   );
