@@ -5,20 +5,34 @@ import {
   fetchSolvedProblems,
   collectAllSlugs,
   type AlgoProblemsData,
+  type FetchResult,
 } from "../../../utils/fetch-leetcode-data";
 
 export async function POST(request: NextRequest) {
   try {
     const { leetcodeSession } = await request.json();
 
-    if (!leetcodeSession || typeof leetcodeSession !== "string") {
+    if (typeof leetcodeSession !== "string") {
       return NextResponse.json(
-        { error: "Missing or invalid leetcodeSession." },
+        { error: "Missing leetcodeSession." },
         { status: 400 },
       );
     }
 
-    // Read the local problem list
+    // ── Mock data path (no cookie provided) ───────────────────────────
+    if (!leetcodeSession) {
+      const mockPath = join(
+        process.cwd(),
+        "public",
+        "data",
+        "mock-solved.json",
+      );
+      const raw = await readFile(mockPath, "utf-8");
+      const mockData: FetchResult = JSON.parse(raw);
+      return NextResponse.json(mockData);
+    }
+
+    // ── Real fetch path (cookie provided) ─────────────────────────────
     const filePath = join(
       process.cwd(),
       "public",
@@ -29,8 +43,6 @@ export async function POST(request: NextRequest) {
     const data: AlgoProblemsData = JSON.parse(raw);
 
     const localSlugs = collectAllSlugs(data);
-
-    // Fetch solved problems from LeetCode
     const result = await fetchSolvedProblems(leetcodeSession, localSlugs);
 
     return NextResponse.json(result);
