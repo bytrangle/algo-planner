@@ -253,12 +253,12 @@ export default function StudyPlan({
             </button>
           </div>
         ) : (
-          <div className="mt-3 space-y-1 font-mono text-sm">
+          <div className="mt-3 space-y-1 font-mono text-blue-700 dark:text-blue-300">
             {history
               .filter((m) => m.role === "user")
               .map((m, i) => (
-                <p key={i} className="text-zinc-700 dark:text-zinc-300">
-                  <span className="select-none text-zinc-400 dark:text-zinc-500 mr-2">{">"}</span>
+                <p key={i}>
+                  <span className="select-none mr-2">{">"}</span>
                   {m.content}
                 </p>
               ))}
