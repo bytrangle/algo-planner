@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as d3 from 'd3'
 import type { SolvedTimestamps } from '../../utils/fetch-leetcode-data'
+import { DIFFICULTY_HEX } from '../../utils/difficulty-colors'
 
 // Types
 interface Problem {
@@ -69,12 +70,6 @@ interface PackedNode extends d3.HierarchyNode<HierarchyData> {
 
 function asPackedNode(node: d3.HierarchyNode<HierarchyData>): PackedNode {
   return node as PackedNode;
-}
-
-const DIFFICULTY_COLORS = {
-  Easy: "#4ade80", // green
-  Medium: "#fb923c", // orange
-  Hard: "#f87171" // red
 }
 
 const SPACING = {
@@ -446,12 +441,12 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
             cx={node.x}
             cy={node.y}
             r={r}
-            fill={uniform ? DIFFICULTY_COLORS[problem.difficulty]
-              : timestamp ? DIFFICULTY_COLORS[problem.difficulty]
+            fill={uniform ? DIFFICULTY_HEX[problem.difficulty]
+              : timestamp ? DIFFICULTY_HEX[problem.difficulty]
               : "none"}
             stroke={uniform ? undefined
               : timestamp ? undefined
-              : DIFFICULTY_COLORS[problem.difficulty]}
+              : DIFFICULTY_HEX[problem.difficulty]}
             strokeWidth={uniform ? undefined
               : timestamp ? undefined
               : 2}
@@ -502,13 +497,13 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
           <div className="flex justify-around items-center">
             <div className="flex flex-col items-center gap-1">
               <svg width="20" height="20" viewBox="0 0 20 20" className="block">
-                <circle cx="10" cy="10" r="7" fill="none" stroke={DIFFICULTY_COLORS.Easy} strokeWidth="2" />
+                <circle cx="10" cy="10" r="7" fill="none" stroke={DIFFICULTY_HEX.Easy} strokeWidth="2" />
               </svg>
               <span className="text-xs text-gray-500">unsolved</span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <svg width="20" height="20" viewBox="0 0 20 20" className="block">
-                <circle cx="10" cy="10" r="7" fill={DIFFICULTY_COLORS.Easy} />
+                <circle cx="10" cy="10" r="7" fill={DIFFICULTY_HEX.Easy} />
               </svg>
               <span className="text-xs text-gray-500">solved</span>
             </div>
@@ -522,7 +517,7 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
             {(["Easy", "Medium", "Hard"] as const).map((d) => (
               <div key={d} className="flex flex-col items-center gap-1">
                 <svg width="20" height="20" viewBox="0 0 20 20" className="block">
-                  <circle cx="10" cy="10" r="7" fill={DIFFICULTY_COLORS[d]} />
+                  <circle cx="10" cy="10" r="7" fill={DIFFICULTY_HEX[d]} />
                 </svg>
                 <span className="text-xs text-gray-500">{d}</span>
               </div>
@@ -542,7 +537,7 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
             ].map((item) => (
               <div key={item.r} className="flex flex-col items-center gap-1">
                 <svg width="40" height="40" viewBox="0 0 40 40" className="block">
-                  <circle cx="20" cy="20" r={item.r} fill={DIFFICULTY_COLORS.Easy} />
+                  <circle cx="20" cy="20" r={item.r} fill={DIFFICULTY_HEX.Easy} />
                 </svg>
                 <span className="text-xs text-gray-500 text-center leading-tight">{item.desc}</span>
               </div>
