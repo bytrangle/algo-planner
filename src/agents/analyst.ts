@@ -140,19 +140,7 @@ export function calculateVelocity(calendar: LeetCodeCalendar): number {
 /**
  * Top 3 days of the week the learner is most active, sorted Sun→Sat.
  */
-export function analyzeStudyDays(calendar: LeetCodeCalendar): number[] {
-  const dayCounts = new Array(7).fill(0);
-  for (const [ts, count] of Object.entries(calendar.submissionCalendar)) {
-    const day = new Date(Number(ts) * 1000).getDay();
-    dayCounts[day] += count;
-  }
-  return dayCounts
-    .map((count, day) => ({ day, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 3)
-    .map((d) => d.day)
-    .sort((a, b) => a - b);
-}
+
 
 // ---------------------------------------------------------------------------
 // LLM tool definitions — only concrete computations the LLM can't easily do
@@ -192,21 +180,6 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
-  {
-    type: "function",
-    function: {
-      name: "analyzeStudyDays",
-      description:
-        "Find the learner's top 3 most active study days from their calendar (0=Sun … 6=Sat).",
-      parameters: {
-        type: "object",
-        properties: {
-          submissionCalendar: { type: "object" },
-        },
-        required: ["submissionCalendar"],
-      },
-    },
-  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -223,14 +196,12 @@ Your job:
    - studyDays    (0=Sun … 6=Sat — "Mon-Fri" → [1,2,3,4,5])
 
 2. **Call LeetCode tools** — \`fetchLeetCodeProfile\` for calendar + badges,
-   then \`calculateVelocity\` and \`analyzeStudyDays\`.
+   then \`calculateVelocity\`.
 
    Use your own reasoning on the profile data to determine:
    - \`hoursPerDay\` — based on badge tiers, streak length, active days.
    - \`timeFrameDays\` — 90 ÷ weekly velocity, round up to nearest 2-week
      increment, × 7.
-   - \`studyDays\` — prefer top days from \`analyzeStudyDays\`, but respect
-     the learner's explicit choice.
    - \`isAggressiveTimeline\` — true when learner's requested timeframe is
      < 70% of what velocity suggests.
 
@@ -239,6 +210,7 @@ Your job:
    **MISSING_FIELDS** — the learner hasn't provided all 3 parameters yet:
    - Extract what you can, set \`studyInfo\` to partial values.
    - Set \`question\` to a friendly one-sentence request for what's missing.
+   - Never guess or infer \`studyDays\` — just ask.
    - Set \`conflictExplanation\` to null.
 
    **CONFLICT** — all fields are gathered AND your data-driven recommendation
@@ -313,10 +285,6 @@ async function dispatchTool(
       return calculateVelocity({
         submissionCalendar: args.submissionCalendar as Record<string, number>,
       } as LeetCodeCalendar);
-    case "analyzeStudyDays":
-      return analyzeStudyDays({
-        submissionCalendar: args.submissionCalendar as Record<string, number>,
-      } as LeetCodeCalendar);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
@@ -363,7 +331,7 @@ export async function analyzeStudyPlan(
       content: [
         {
           type: "text",
-          text: `The learner's LeetCode username is "${username}". Call \`fetchLeetCodeProfile\` to get their behavioural data, then \`calculateVelocity\` and \`analyzeStudyDays\` on the calendar. Use the raw profile (badges, streak, active days) to reason about their consistency and determine \`hoursPerDay\`.`,
+          text: `The learner's LeetCode username is "${username}". Call \`fetchLeetCodeProfile\` to get their behavioural data, then \`calculateVelocity\` on the calendar. Use the raw profile (badges, streak, active days) to reason about their consistency and determine \`hoursPerDay\`.`,
           // @ts-expect-error — cache_control is a DashScope extension
           cache_control: { type: "ephemeral" },
         },
@@ -384,14 +352,20 @@ export async function analyzeStudyPlan(
   for (let turn = 0; turn < 8; turn++) {
     // ---------- native streaming ----------
     // extra_body is a DashScope extension not in the OpenAI SDK types
+    // Enable thinking only after tool results are in the conversation
+    // (i.e., when the LLM is about to produce the final analysis).
+    // Tool-calling turns don't need the overhead.
+    const hasToolResults = apiMessages.some(
+      (m) => m.role === "tool" || (m.role === "assistant" && "tool_calls" in m),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const completionStream = await (openai.chat.completions as any).create({
-      model: "qwen3.7-max-2026-06-08",
+      model: "qwen3.5-plus",
       messages: apiMessages,
       tools: TOOLS,
       temperature: 0.2,
       stream: true,
-      extra_body: { enable_thinking: true },
+      extra_body: { enable_thinking: hasToolResults },
     });
 
     // Accumulators for deltas
