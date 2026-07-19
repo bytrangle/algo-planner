@@ -78,19 +78,17 @@ export default function ReasoningPanel({
         <div className="mt-2 pl-5">
           {thinkingLogs.length > 0 && (
             <details className="mb-2">
-              <summary className="text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer">
+              <summary className="text-sm text-zinc-500 dark:text-zinc-400 cursor-pointer">
                 Thinking…
               </summary>
-              <div className="mt-1 space-y-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 max-h-40 overflow-y-auto">
-                {thinkingLogs.map((log, i) => (
-                  <p key={i}>{log}</p>
-                ))}
-              </div>
+              <pre className="mt-1 font-mono text-xs max-h-40 overflow-y-auto whitespace-pre-wrap">
+                {thinkingLogs.join("")}
+              </pre>
             </details>
           )}
 
           {reasoning && (
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+            <p className="mt-3 text-sm">
               {reasoning}
             </p>
           )}
