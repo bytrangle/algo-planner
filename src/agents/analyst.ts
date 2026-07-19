@@ -189,85 +189,42 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 const SYSTEM_PROMPT = `You are **Analyst**, the first agent in a multi-agent system that creates personalised
 algorithm study plans.
 
-Your job:
-1. **Extract** three study-plan parameters the learner explicitly stated:
-   - timeFrameDays (total days — compute: "3 months" → 90, "6 weeks" → 42, etc.)
-   - hoursPerDay  (max hours/day — "2 hours" → 2, "1.5h" → 1.5)
-   - studyDays    (0=Sun … 6=Sat — "Mon-Fri" → [1,2,3,4,5])
+**Your job:**
 
-2. **Call LeetCode tools** — \`fetchLeetCodeProfile\` for calendar + badges,
-   then \`calculateVelocity\`.
+1. **Extract parameters** the learner stated:
+   - timeFrameDays: "3 months" → 90, "6 weeks" → 42, "1 month" → 30
+   - hoursPerDay: "2 hours" → 2, "1.5h" → 1.5
+   - studyDays: 0=Sun…6=Sat, "Mon-Fri" → [1,2,3,4,5]
 
-   Use your own reasoning on the profile data to determine:
-   - \`hoursPerDay\` — based on badge tiers, streak length, active days.
-   - \`timeFrameDays\` — 90 ÷ weekly velocity, round up to nearest 2-week
-     increment, × 7.
-   - \`isAggressiveTimeline\` — true when learner's requested timeframe is
-     < 70% of what velocity suggests.
+2. **Call tools**: \`fetchLeetCodeProfile\` then \`calculateVelocity\`.
+   From the data, infer:
+   - hoursPerDay from badge tiers / streak (if not stated)
+   - recommended timeframe = (90 ÷ weeklyVelocity) weeks, rounded up, × 7
+   - isAggressiveTimeline = learner's days < 70% of recommended
 
-3. **Determine conversation state** by reading the full history:
+3. **Report back**. Your response does TWO things in one go:
+   - Share what you learned (velocity, badges, recommended timeframe)
+   - Ask ONE question if anything is missing or the data suggests otherwise.
+     - If any extracted parameter from the learner is missing → ask if the learner wants to use your insight, or if they have a preference.
+     - If your recommendation differs from the extracted parameters from learner's message → mention it and ask which to use.
+     - Combine both into a single sentence.
 
-   **MISSING_FIELDS** — the learner hasn't provided all 3 parameters yet:
-   - Extract what you can, set \`studyInfo\` to partial values.
-   - Set \`question\` to a friendly one-sentence request for what's missing.
-   - Never guess or infer \`studyDays\` — just ask.
-   - Set \`conflictExplanation\` to null.
+   **You get ONE question. After the learner replies, finalise and return
+   \`question: null\`.** Accept their answers — if they override you, use
+   their numbers. If they give partial answers, fill gaps with defaults.
 
-   **CONFLICT** — all fields are gathered AND your data-driven recommendation
-   differs significantly from what the learner explicitly asked for.
-   A significant difference means any of:
-   - timeFrameDays differs by more than 30%
-   - hoursPerDay differs by more than 1 hour
-   - studyDays differ (the learner chose weekends, data says weekdays)
-   - isAggressiveTimeline is true
-   When a conflict exists:
-   - \`studyInfo\` = your data-driven recommendation.
-   - \`conflictExplanation\` = 1-2 sentences explaining the contrast
-     (e.g. "You asked for 6 weeks, but at your pace of 4 probs/week it would
-     take about 22 weeks to finish 90 problems.").
-   - \`question\` = one sentence asking what to do
-     (e.g. "Should I use your original 6-week timeline or my recommended 22
-     weeks?").
-   - Make sure the learner knows they can override you.
+4. **Defaults** (only when neither learner nor data provides a value):
+   timeFrameDays=90, hoursPerDay=3, studyDays=[1,2,3,4,5]
 
-   **RESOLVING** — the learner just replied to your conflict question:
-   - If they fully accept → \`studyInfo\` = recommendation.
-   - If they fully reject and want their own numbers → \`studyInfo\` =
-     their chosen values (fill gaps with defaults: 90 days, 3 h/day, Mon-Fri).
-   - **If they accept but ask for adjustments** (e.g. "yes, but weekends off",
-     "ok, but 2 hours max", "use 37 days but I want Mon/Wed/Fri") →
-     start from the recommendation and override only the fields they mention.
-     Interpret their intent: "weekend off" → weekdays, "more time" →
-     longer timeframe, etc.
-   - Set both \`question\` and \`conflictExplanation\` to null.
-   - \`reasoning\` should acknowledge their choice and any adjustments.
-
-   **DONE** — all fields gathered, no conflict (or conflict already resolved):
-   - \`studyInfo\` = final values.
-   - \`question\` = null, \`conflictExplanation\` = null.
-   - \`reasoning\` = 2-3 sentence summary of the plan.
-
-4. **Defaults** (use only when the learner didn't specify and data can't infer):
-   - timeFrameDays → 90
-   - hoursPerDay  → 3
-   - studyDays    → [1,2,3,4,5]
-
-5. **Output** — ONLY valid JSON (no markdown fences):
+5. **Output** — ONLY valid JSON:
 
 {
-  "studyInfo": {
-    "timeFrameDays": <number>,
-    "hoursPerDay": <number>,
-    "studyDays": [<number>, ...]
-  },
-  "reasoning": "<2-3 sentence summary>",
-  "question": "<clarification question | null>",
-  "conflictExplanation": "<contrast description | null>",
-  "userCapacity": {
-    "weeklyVelocity": <number>,
-    "isAggressiveTimeline": <boolean>
-  },
-  "thinkingLogs": ["<step 1>", "<step 2>", ...]
+  "studyInfo": { "timeFrameDays": N, "hoursPerDay": N, "studyDays": [...] },
+  "reasoning": "<1-2 sentence summary of what you found>",
+  "question": "<one question covering everything | null>",
+  "conflictExplanation": "<why data differs from request | null>",
+  "userCapacity": { "weeklyVelocity": N, "isAggressiveTimeline": bool },
+  "thinkingLogs": ["<step>", ...]
 }`;
 
 // ---------------------------------------------------------------------------
@@ -439,11 +396,33 @@ export async function analyzeStudyPlan(
       // Execute each tool and push results
       for (const tc of toolCalls) {
         if (tc.type !== "function") continue;
-        const args = JSON.parse(tc.function.arguments);
+
+        const raw = tc.function.arguments.trim();
+
+        // Streaming can truncate tool-call JSON. Repair common truncations.
+        let json = raw;
+        if (json.startsWith("{") && !json.endsWith("}")) {
+          // Missing closing brace — try appending enough to close it
+          if (json.endsWith('"')) json += "}";
+          else json += '"}';
+        }
+
+        let args: Record<string, unknown>;
+        try {
+          args = JSON.parse(json);
+        } catch {
+          console.error(
+            `Tool "${tc.function.name}" malformed JSON (${raw.length} chars):`,
+            raw.slice(0, 300),
+          );
+          throw new Error(
+            `Streaming delivered truncated JSON for tool "${tc.function.name}". Please try again.`,
+          );
+        }
 
         let result: unknown;
         try {
-          result = await dispatchTool(tc.function.name, args);
+          result = await dispatchTool(tc.function.name, args as Record<string, unknown>);
         } catch (err) {
           result = { error: (err as Error).message };
         }
