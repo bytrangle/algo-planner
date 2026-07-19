@@ -22,6 +22,8 @@ interface ReasoningPanelProps {
   streaming: boolean;
   /** Optional extra className on the wrapper <div> */
   className?: string;
+  /** Frozen elapsed time (seconds) — used when a panel is preserved after streaming stops */
+  frozenElapsed?: number;
 }
 
 export default function ReasoningPanel({
@@ -30,6 +32,7 @@ export default function ReasoningPanel({
   thinkingLogs,
   streaming,
   className,
+  frozenElapsed,
 }: ReasoningPanelProps) {
   const [open, setOpen] = useState(true);
   const [elapsed, setElapsed] = useState(0);
@@ -82,9 +85,9 @@ export default function ReasoningPanel({
         >
           {label}
         </span>
-        {elapsed > 0 && (
+        {(elapsed > 0 || (frozenElapsed ?? 0) > 0) && (
           <span className="tabular-nums ml-1">
-            {fmtElapsed(elapsed)}
+            {fmtElapsed(frozenElapsed ?? elapsed)}
           </span>
         )}
         <svg
