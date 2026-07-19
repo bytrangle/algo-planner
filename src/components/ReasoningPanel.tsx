@@ -2,7 +2,14 @@
 // ReasoningPanel — collapsible streaming reasoning display
 // ---------------------------------------------------------------------------
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+
+function fmtElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
 
 interface ReasoningPanelProps {
   /** Heading label, e.g. "Analyst Reasoning" */
@@ -25,6 +32,21 @@ export default function ReasoningPanel({
   className,
 }: ReasoningPanelProps) {
   const [open, setOpen] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (streaming) {
+      startRef.current = Date.now();
+      const id = setInterval(() => {
+        if (startRef.current != null) {
+          setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+        }
+      }, 200);
+      return () => clearInterval(id);
+    }
+    // Streaming stopped — leave elapsed at its final value
+  }, [streaming]);
 
   const hasContent = reasoning || thinkingLogs.length > 0;
   if (!streaming && !hasContent) return null;
@@ -60,6 +82,11 @@ export default function ReasoningPanel({
         >
           {label}
         </span>
+        {elapsed > 0 && (
+          <span className="tabular-nums ml-1">
+            {fmtElapsed(elapsed)}
+          </span>
+        )}
         <svg
           className={`w-3.5 h-3.5 shrink-0 ml-auto transition-transform ${open ? "rotate-180" : ""}`}
           viewBox="0 0 24 24"
@@ -78,7 +105,7 @@ export default function ReasoningPanel({
         <div className="mt-2 pl-5">
           {thinkingLogs.length > 0 && (
             <details className="mb-2">
-              <summary className="text-sm text-zinc-500 dark:text-zinc-400 cursor-pointer">
+              <summary className="text-sm cursor-pointer">
                 Thinking…
               </summary>
               <pre className="mt-1 font-mono text-xs max-h-40 overflow-y-auto whitespace-pre-wrap">
@@ -88,7 +115,7 @@ export default function ReasoningPanel({
           )}
 
           {reasoning && (
-            <p className="mt-3 text-sm">
+            <p className="mt-2 text-sm leading-relaxed whitespace-pre-line">
               {reasoning}
             </p>
           )}
