@@ -343,14 +343,35 @@ export async function analyzeStudyPlan(
   username: string,
   stream?: StreamController,
 ): Promise<AnalystResult> {
+  // Build messages with explicit cache control for static content
   const apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    // System prompt — cached (large, static)
     {
       role: "system",
-      content: `The learner's LeetCode username is "${username}".  Call \`fetchLeetCodeProfile\` to get their behavioural data, then \`calculateVelocity\` and \`analyzeStudyDays\` on the calendar.  Use the raw profile (badges, streak, active days) to reason about their consistency and determine \`hoursPerDay\`.`,
+      content: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          // @ts-expect-error — cache_control is a DashScope extension
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+    },
+    // User context — cached (static per user session)
+    {
+      role: "system",
+      content: [
+        {
+          type: "text",
+          text: `The learner's LeetCode username is "${username}". Call \`fetchLeetCodeProfile\` to get their behavioural data, then \`calculateVelocity\` and \`analyzeStudyDays\` on the calendar. Use the raw profile (badges, streak, active days) to reason about their consistency and determine \`hoursPerDay\`.`,
+          // @ts-expect-error — cache_control is a DashScope extension
+          cache_control: { type: "ephemeral" },
+        },
+      ],
     },
   ];
 
+  // Dynamic conversation history — not cached
   for (const m of messages) {
     apiMessages.push({
       role: m.role as "user" | "assistant",
@@ -365,7 +386,7 @@ export async function analyzeStudyPlan(
     // extra_body is a DashScope extension not in the OpenAI SDK types
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const completionStream = await (openai.chat.completions as any).create({
-      model: "qwen3-max-2026-01-23",
+      model: "qwen3.7-max-2026-06-08",
       messages: apiMessages,
       tools: TOOLS,
       temperature: 0.2,
