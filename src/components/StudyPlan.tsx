@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import type { ProblemWithTopic } from "../utils/flatten-problems";
 import type { StudyPlanParams, UserCapacity } from "../agents/analyst";
 import type { OptimizedPlan } from "../agents/optimizer";
@@ -30,15 +30,6 @@ type PlanStage =
   | { stage: "analyzing"; question: string; reasoning: string; conflictExplanation: string | null; history: ChatMessage[]; studyInfo: Partial<StudyPlanParams> }
   | { stage: "optimizing"; reasoning: string; history: ChatMessage[]; studyInfo: StudyPlanParams; userCapacity: UserCapacity; plan: OptimizedPlan };
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const RUMINATING_ICONS = ["•", "★", "∗", "☀", "❄", "◇"];
-
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
 
 export default function StudyPlan({
   username,
@@ -46,7 +37,9 @@ export default function StudyPlan({
   solvedProblems,
 }: StudyPlanProps) {
   const [draft, setDraft] = useState("");
+  const [sentText, setSentText] = useState<string | null>(null);
   const [reply, setReply] = useState("");
+  const [repliedText, setRepliedText] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [history, setHistory] = useState<ChatMessage[]>([]);
@@ -64,16 +57,6 @@ export default function StudyPlan({
     question: string;
     conflictExplanation: string | null;
   } | null>(null);
-
-  const [iconIndex, setIconIndex] = useState(0);
-  useEffect(() => {
-    if (!isSubmitting) return;
-    const id = setInterval(
-      () => setIconIndex((i) => (i + 1) % RUMINATING_ICONS.length),
-      800,
-    );
-    return () => clearInterval(id);
-  }, [isSubmitting]);
 
   const isAnalyzing = result?.stage === "analyzing";
   const isOptimizing = result?.stage === "optimizing";
@@ -152,6 +135,8 @@ export default function StudyPlan({
                   setHistory(payload.history);
                   setStreaming(false);
                   setSent(true);
+                  setSentText(null);
+                  setRepliedText(null);
                   // Capture Analyst's question for the final chronological view
                   if (payload.stage === "analyzing") {
                     setSavedAnalysis({
@@ -182,11 +167,14 @@ export default function StudyPlan({
 
   const onInitialSubmit = useCallback(() => {
     if (!draft.trim()) return;
+    setSent(true);
+    setSentText(draft);
     sendMessage(draft);
   }, [draft, sendMessage]);
 
   const onReplySubmit = useCallback(() => {
     if (!reply.trim()) return;
+    setRepliedText(reply);
     sendMessage(reply);
   }, [reply, sendMessage]);
 
@@ -240,28 +228,28 @@ export default function StudyPlan({
               className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-lg transition-colors cursor-pointer"
               aria-label="Submit"
             >
-              {isSubmitting ? (
-                <svg className="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
-                </svg>
-              )}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
+              </svg>
             </button>
           </div>
         ) : (
-          <div className="mt-3 space-y-1 font-mono text-blue-700 dark:text-blue-300">
-            {history
-              .filter((m) => m.role === "user")
-              .map((m, i) => (
-                <p key={i}>
-                  <span className="select-none mr-2">{">"}</span>
-                  {m.content}
-                </p>
-              ))}
+          <div className="font-mono mt-3 space-y-1 text-blue-700 dark:text-blue-300">
+            {sentText && (
+              <p>
+                <span className="select-none mr-2">{">"}</span>
+                {sentText}
+              </p>
+            )}
+            {!sentText &&
+              history
+                .filter((m) => m.role === "user")
+                .map((m, i) => (
+                   <p key={i}>
+                    <span className="select-none mr-2">{">"}</span>
+                    {m.content}
+                  </p>
+                ))}
           </div>
         )}
 
@@ -283,28 +271,24 @@ export default function StudyPlan({
             )}
             <p className="font-medium text-zinc-800 dark:text-zinc-200">{result.question}</p>
 
-            <div className="flex gap-2">
+            {repliedText ? (
+              <div className="font-mono mt-3 text-blue-700 dark:text-blue-300">
+                <p>
+                  <span className="select-none mr-2">{">"}</span>
+                  {repliedText}
+                </p>
+              </div>
+            ) : (
               <input
                 type="text"
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") onReplySubmit(); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && reply.trim()) onReplySubmit(); }}
                 disabled={isSubmitting}
                 placeholder='e.g. "yes", "stick to my plan", "Mon-Fri"...'
-                className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full px-3 py-1.5 border-0 border-b-2 border-zinc-300 dark:border-zinc-700 bg-transparent focus:outline-none focus:border-blue-500 disabled:opacity-50"
               />
-              <button
-                onClick={onReplySubmit}
-                disabled={!reply.trim() || isSubmitting}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-sm font-medium text-white transition-colors cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <span className="inline-block w-[1em] text-center">{RUMINATING_ICONS[iconIndex]}</span>
-                ) : (
-                  "Send"
-                )}
-              </button>
-            </div>
+            )}
           </div>
         )}
       </div>
