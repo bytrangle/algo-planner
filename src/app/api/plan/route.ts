@@ -5,6 +5,7 @@ import {
   type AnalystEvent,
 } from "@/src/agents/analyst";
 import { designStudyPlan, type ParsedStudyInfo } from "@/src/agents/designer";
+import { optimizeStudyPlan, type OptimizerEvent } from "@/src/agents/optimizer";
 import type { ProblemWithTopic } from "@/src/utils/flatten-problems";
 
 // ---------------------------------------------------------------------------
@@ -53,51 +54,43 @@ export async function POST(request: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (event: AnalystEvent) => {
+      const send = (event: AnalystEvent | OptimizerEvent) => {
         controller.enqueue(encoder.encode(sse(event.type, event)));
       };
 
       try {
-        // ---- Agent 1: Analyst (streaming) ----
+        // ---- Agent 1: Analyst ----
         const analystResult = await analyzeStudyPlan(
           updatedHistory,
           username,
           send,
         );
 
-        // If Analyst needs clarification, stop here
-        if (analystResult.question) {
-          updatedHistory.push({
-            role: "assistant",
-            content: analystResult.question,
-          });
-          controller.enqueue(
-            encoder.encode(
-              sse("done", {
-                stage: "analyzing",
-                question: analystResult.question,
-                reasoning: analystResult.reasoning,
-                conflictExplanation: analystResult.conflictExplanation,
-                history: updatedHistory,
-                studyInfo: analystResult.studyInfo,
-              }),
-            ),
-          );
-          controller.close();
-          return;
-        }
-
         // ---- Agent 2: Designer ----
-        send({ type: "log", message: "Designing your study plan..." });
 
         const studyInfo: ParsedStudyInfo = {
           timeFrameDays: analystResult.studyInfo.timeFrameDays,
           hoursPerDay: analystResult.studyInfo.hoursPerDay,
           studyDays: analystResult.studyInfo.studyDays,
           userCapacity: analystResult.userCapacity,
+          username: username,
         };
 
-        const plan = await designStudyPlan(allProblems, studyInfo);
+        const designerOutput = await designStudyPlan(allProblems, studyInfo, send);
+
+        // ---- Agent 3: Optimizer ----
+        controller.enqueue(
+          encoder.encode(sse("designer_done", {})),
+        );
+        send({ type: "log", message: "Optimizing for effective learning..." });
+
+        const optimizedPlan = await optimizeStudyPlan(
+          designerOutput,
+          analystResult.studyInfo,
+          analystResult.userCapacity,
+          username,
+          send,
+        );
 
         updatedHistory.push({
           role: "assistant",
@@ -107,12 +100,12 @@ export async function POST(request: NextRequest) {
         controller.enqueue(
           encoder.encode(
             sse("done", {
-              stage: "designing",
+              stage: "optimizing",
               reasoning: analystResult.reasoning,
               history: updatedHistory,
               studyInfo: analystResult.studyInfo,
               userCapacity: analystResult.userCapacity,
-              plan,
+              plan: optimizedPlan,
             }),
           ),
         );
