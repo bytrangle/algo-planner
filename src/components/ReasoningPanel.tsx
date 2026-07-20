@@ -118,7 +118,7 @@ export default function ReasoningPanel({
           )}
 
           {reasoning && (
-            <p className="mt-2 text-sm leading-relaxed whitespace-pre-line">
+            <p className="mt-2 font-mono font-medium text-sm leading-relaxed whitespace-pre-line">
               {reasoning}
             </p>
           )}
