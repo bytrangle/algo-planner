@@ -363,7 +363,7 @@ function redistribute(
     extra: ProblemObj[];
   };
 
-  let days: DayPlan[] = dates.map((d) => ({
+  const days: DayPlan[] = dates.map((d) => ({
     date: d,
     dayOfWeek: dateToDay[d] ?? "",
     essential: [],
