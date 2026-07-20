@@ -2,649 +2,519 @@
   "username": "bytrangle",
   "solvedProblems": [
     {
-      "titleSlug": "reverse-linked-list",
-      "title": "Reverse Linked List",
-      "lastSubmittedAt": "1768198140"
-    },
-    {
-      "titleSlug": "two-sum-ii-input-array-is-sorted",
-      "title": "Two Sum II - Input Array Is Sorted",
-      "lastSubmittedAt": "1781948880"
-    },
-    {
-      "titleSlug": "multiply-strings",
-      "title": "Multiply Strings",
-      "lastSubmittedAt": "1772419920"
-    },
-    {
-      "titleSlug": "ugly-number",
-      "title": "Ugly Number",
-      "lastSubmittedAt": "1774957380"
-    },
-    {
-      "titleSlug": "swap-nodes-in-pairs",
-      "title": "Swap Nodes in Pairs",
-      "lastSubmittedAt": "1778855520"
-    },
-    {
-      "titleSlug": "construct-binary-tree-from-preorder-and-inorder-traversal",
-      "title": "Construct Binary Tree from Preorder and Inorder",
-      "lastSubmittedAt": "1772200620"
-    },
-    {
-      "titleSlug": "3Sum",
-      "title": "3Sum",
-      "lastSubmittedAt": "1772384100"
-    },
-    {
-      "titleSlug": "fibonacci-number",
-      "title": "Fibonacci Number",
-      "lastSubmittedAt": "1763805000"
-    },
-    {
-      "titleSlug": "remove-element",
-      "title": "Remove Element",
-      "lastSubmittedAt": "1775266200"
-    },
-    {
-      "titleSlug": "factorial-trailing-zeroes",
-      "title": "Factorial Trailing Zeroes",
-      "lastSubmittedAt": "1775490600"
-    },
-    {
-      "titleSlug": "intersection-of-two-linked-lists",
-      "title": "Intersection of Two Linked Lists",
-      "lastSubmittedAt": "1775925360"
-    },
-    {
-      "titleSlug": "diameter-of-binary-tree",
-      "title": "Diameter of Binary Tree",
-      "lastSubmittedAt": "1778467320"
-    },
-    {
-      "titleSlug": "linked-list-cycle-ii",
-      "title": "Linked List Cycle II",
-      "lastSubmittedAt": "1768842600"
-    },
-    {
-      "titleSlug": "min-cost-to-connect-all-points",
-      "title": "Min Cost to Connect All Points",
-      "lastSubmittedAt": "1769624940"
-    },
-    {
-      "titleSlug": "ugly-number-iii",
-      "title": "Ugly Number III",
-      "lastSubmittedAt": "1780127220"
-    },
-    {
-      "titleSlug": "minimum-falling-path-sum",
-      "title": "Minimum Falling Path Sum",
-      "lastSubmittedAt": "1771435560"
-    },
-    {
-      "titleSlug": "maximum-depth-of-binary-tree",
-      "title": "Maximum Depth of Binary Tree",
-      "lastSubmittedAt": "1782927600"
-    },
-    {
-      "titleSlug": "combination-sum-ii",
-      "title": "Combination Sum II",
-      "lastSubmittedAt": "1783204200"
-    },
-    {
-      "titleSlug": "binary-search-tree-to-greater-sum-tree",
-      "title": "Binary Search Tree to Greater Sum Tree",
-      "lastSubmittedAt": "1772625420"
-    },
-    {
-      "titleSlug": "nim-game",
-      "title": "Nim Game",
-      "lastSubmittedAt": "1773065160"
-    },
-    {
-      "titleSlug": "remove-duplicates-from-sorted-array",
-      "title": "Remove Duplicates from Sorted Array",
-      "lastSubmittedAt": "1780237320"
-    },
-    {
-      "titleSlug": "gas-station",
-      "title": "Gas Station",
-      "lastSubmittedAt": "1769420100"
-    },
-    {
-      "titleSlug": "koko-eating-bananas",
-      "title": "Koko Eating Bananas",
-      "lastSubmittedAt": "1771752180"
-    },
-    {
-      "titleSlug": "freedom-trail",
-      "title": "Freedom Trail",
-      "lastSubmittedAt": "1783806900"
-    },
-    {
-      "titleSlug": "minimum-ascii-delete-sum-for-two-strings",
-      "title": "Minimum ASCII Delete Sum for Two Strings",
-      "lastSubmittedAt": "1769725440"
-    },
-    {
-      "titleSlug": "coin-change-ii",
-      "title": "Coin Change II",
-      "lastSubmittedAt": "1777366020"
-    },
-    {
-      "titleSlug": "subsets-ii",
-      "title": "Subsets II",
-      "lastSubmittedAt": "1777369440"
-    },
-    {
-      "titleSlug": "find-first-and-last-position-of-element-in-sorted-array",
-      "title": "Find First and Last Position",
-      "lastSubmittedAt": "1781378340"
-    },
-    {
-      "titleSlug": "n-ary-tree-postorder-traversal",
-      "title": "N-ary Tree Postorder Traversal",
-      "lastSubmittedAt": "1777689600"
-    },
-    {
-      "titleSlug": "lowest-common-ancestor-of-a-binary-tree",
-      "title": "Lowest Common Ancestor of a Binary Tree",
-      "lastSubmittedAt": "1782750660"
-    },
-    {
-      "titleSlug": "spiral-matrix-ii",
-      "title": "Spiral Matrix II",
-      "lastSubmittedAt": "1771854960"
-    },
-    {
-      "titleSlug": "interval-list-intersections",
-      "title": "Interval List Intersections",
-      "lastSubmittedAt": "1779583440"
-    },
-    {
-      "titleSlug": "random-pick-with-weight",
-      "title": "Random Pick with Weight",
-      "lastSubmittedAt": "1776607440"
-    },
-    {
-      "titleSlug": "implement-stack-using-queues",
-      "title": "Implement Stack using Queues",
-      "lastSubmittedAt": "1778910120"
-    },
-    {
-      "titleSlug": "stone-game",
-      "title": "Stone Game",
-      "lastSubmittedAt": "1774566900"
-    },
-    {
-      "titleSlug": "ugly-number-ii",
-      "title": "Ugly Number II",
-      "lastSubmittedAt": "1770755220"
-    },
-    {
-      "titleSlug": "video-stitching",
-      "title": "Video Stitching",
-      "lastSubmittedAt": "1769557260"
-    },
-    {
-      "titleSlug": "minimum-number-of-arrows-to-burst-balloons",
-      "title": "Minimum Number of Arrows to Burst Balloons",
-      "lastSubmittedAt": "1769691840"
-    },
-    {
-      "titleSlug": "remove-covered-intervals",
-      "title": "Remove Covered Intervals",
-      "lastSubmittedAt": "1778504640"
-    },
-    {
-      "titleSlug": "unique-binary-search-trees-ii",
-      "title": "Unique Binary Search Trees II",
-      "lastSubmittedAt": "1772109780"
-    },
-    {
-      "titleSlug": "super-egg-drop",
-      "title": "Super Egg Drop",
-      "lastSubmittedAt": "1777630500"
-    },
-    {
-      "titleSlug": "best-time-to-buy-and-sell-stock-ii",
-      "title": "Best Time to Buy and Sell Stock II",
-      "lastSubmittedAt": "1779736800"
-    },
-    {
-      "titleSlug": "next-greater-element-i",
-      "title": "Next Greater Element I",
-      "lastSubmittedAt": "1765441680"
-    },
-    {
-      "titleSlug": "validate-binary-search-tree",
-      "title": "Validate Binary Search Tree",
-      "lastSubmittedAt": "1778774100"
-    },
-    {
-      "titleSlug": "merge-two-sorted-lists",
-      "title": "Merge Two Sorted Lists",
-      "lastSubmittedAt": "1770260820"
-    },
-    {
-      "titleSlug": "car-pooling",
-      "title": "Car Pooling",
-      "lastSubmittedAt": "1783355940"
-    },
-    {
-      "titleSlug": "best-time-to-buy-and-sell-stock-with-cooldown",
-      "title": "Best Time to Buy and Sell Stock with Cooldown",
-      "lastSubmittedAt": "1781383440"
-    },
-    {
-      "titleSlug": "daily-temperatures",
-      "title": "Daily Temperatures",
-      "lastSubmittedAt": "1774480500"
-    },
-    {
-      "titleSlug": "best-time-to-buy-and-sell-stock",
-      "title": "Best Time to Buy and Sell Stock",
-      "lastSubmittedAt": "1774828800"
-    },
-    {
-      "titleSlug": "linked-list-cycle",
-      "title": "Linked List Cycle",
-      "lastSubmittedAt": "1781877840"
-    },
-    {
-      "titleSlug": "longest-palindromic-subsequence",
-      "title": "Longest Palindromic Subsequence",
-      "lastSubmittedAt": "1780963080"
-    },
-    {
-      "titleSlug": "minimum-path-sum",
-      "title": "Minimum Path Sum",
-      "lastSubmittedAt": "1776119100"
-    },
-    {
-      "titleSlug": "remove-nth-node-from-end-of-list",
-      "title": "Remove Nth Node From End of List",
-      "lastSubmittedAt": "1774789080"
-    },
-    {
-      "titleSlug": "permutations",
-      "title": "Permutations",
-      "lastSubmittedAt": "1776265380"
-    },
-    {
-      "titleSlug": "house-robber",
-      "title": "House Robber",
-      "lastSubmittedAt": "1779651900"
-    },
-    {
-      "titleSlug": "binary-tree-inorder-traversal",
-      "title": "Binary Tree Inorder Traversal",
-      "lastSubmittedAt": "1769607480"
-    },
-    {
-      "titleSlug": "reverse-linked-list-ii",
-      "title": "Reverse Linked List II",
-      "lastSubmittedAt": "1771903260"
-    },
-    {
-      "titleSlug": "edit-distance",
-      "title": "Edit Distance",
-      "lastSubmittedAt": "1780909500"
-    },
-    {
-      "titleSlug": "corporate-flight-bookings",
-      "title": "Corporate Flight Bookings",
-      "lastSubmittedAt": "1780372740"
-    },
-    {
-      "titleSlug": "combinations",
-      "title": "Combinations",
-      "lastSubmittedAt": "1776913740"
-    },
-    {
-      "titleSlug": "house-robber-iii",
-      "title": "House Robber III",
-      "lastSubmittedAt": "1778835000"
-    },
-    {
-      "titleSlug": "number-of-enclaves",
-      "title": "Number of Enclaves",
-      "lastSubmittedAt": "1768829760"
-    },
-    {
-      "titleSlug": "partition-equal-subset-sum",
-      "title": "Partition Equal Subset Sum",
-      "lastSubmittedAt": "1783475160"
-    },
-    {
-      "titleSlug": "coin-change",
-      "title": "Coin Change",
-      "lastSubmittedAt": "1774158060"
-    },
-    {
-      "titleSlug": "number-of-islands",
-      "title": "Number of Islands",
-      "lastSubmittedAt": "1779271140"
-    },
-    {
-      "titleSlug": "minimum-depth-of-binary-tree",
-      "title": "Minimum Depth of Binary Tree",
-      "lastSubmittedAt": "1769769300"
-    },
-    {
-      "titleSlug": "unique-binary-search-trees",
-      "title": "Unique Binary Search Trees",
-      "lastSubmittedAt": "1778163060"
-    },
-    {
-      "titleSlug": "first-missing-positive",
-      "title": "First Missing Positive",
-      "lastSubmittedAt": "1780432080"
-    },
-    {
-      "titleSlug": "n-ary-tree-preorder-traversal",
-      "title": "N-ary Tree Preorder Traversal",
-      "lastSubmittedAt": "1775416020"
-    },
-    {
-      "titleSlug": "bulb-switcher",
-      "title": "Bulb Switcher",
-      "lastSubmittedAt": "1777049580"
-    },
-    {
-      "titleSlug": "count-complete-tree-nodes",
-      "title": "Count Complete Tree Nodes",
-      "lastSubmittedAt": "1764924540"
-    },
-    {
-      "titleSlug": "split-array-into-consecutive-subsequences",
-      "title": "Split Array into Consecutive Subsequences",
-      "lastSubmittedAt": "1778514840"
-    },
-    {
-      "titleSlug": "delete-node-in-a-bst",
-      "title": "Delete Node in a BST",
-      "lastSubmittedAt": "1774674840"
-    },
-    {
       "titleSlug": "missing-number",
       "title": "Missing Number",
-      "lastSubmittedAt": "1766903580"
+      "lastSubmittedAt": "1782746815"
     },
     {
-      "titleSlug": "next-greater-element-ii",
-      "title": "Next Greater Element II",
-      "lastSubmittedAt": "1773063360"
+      "titleSlug": "power-of-two",
+      "title": "Power of Two",
+      "lastSubmittedAt": "1782744882"
     },
     {
-      "titleSlug": "count-sub-islands",
-      "title": "Count Sub Islands",
-      "lastSubmittedAt": "1771584240"
+      "titleSlug": "number-of-1-bits",
+      "title": "Number of 1 Bits",
+      "lastSubmittedAt": "1782727210"
     },
     {
-      "titleSlug": "binary-tree-preorder-traversal",
-      "title": "Binary Tree Preorder Traversal",
-      "lastSubmittedAt": "1783276380"
-    },
-    {
-      "titleSlug": "construct-binary-tree-from-preorder-and-postorder-traversal",
-      "title": "Construct Binary Tree from Preorder and Postorder Traversal",
-      "lastSubmittedAt": "1772752620"
-    },
-    {
-      "titleSlug": "range-sum-query-2d-immutable",
-      "title": "Range Sum Query 2D - Immutable",
-      "lastSubmittedAt": "1769510220"
-    },
-    {
-      "titleSlug": "subsets",
-      "title": "Subsets",
-      "lastSubmittedAt": "1782759720"
-    },
-    {
-      "titleSlug": "trapping-rain-water",
-      "title": "Trapping Rain Water",
-      "lastSubmittedAt": "1777443480"
-    },
-    {
-      "titleSlug": "search-in-a-binary-search-tree",
-      "title": "Search in a Binary Search Tree",
-      "lastSubmittedAt": "1765545240"
-    },
-    {
-      "titleSlug": "target-sum",
-      "title": "Target Sum",
-      "lastSubmittedAt": "1777682460"
-    },
-    {
-      "titleSlug": "lowest-common-ancestor-of-a-binary-search-tree",
-      "title": "Lowest Common Ancestor of a Binary Search Tree",
-      "lastSubmittedAt": "1775284500"
-    },
-    {
-      "titleSlug": "convert-bst-to-greater-tree",
-      "title": "Convert BST to Greater Tree",
-      "lastSubmittedAt": "1777765920"
-    },
-    {
-      "titleSlug": "longest-common-subsequence",
-      "title": "Longest Common Subsequence",
-      "lastSubmittedAt": "1774985760"
-    },
-    {
-      "titleSlug": "house-robber-ii",
-      "title": "House Robber II",
-      "lastSubmittedAt": "1780435440"
-    },
-    {
-      "titleSlug": "4Sum",
-      "title": "4Sum",
-      "lastSubmittedAt": "1775344020"
-    },
-    {
-      "titleSlug": "permutations ii",
-      "title": "Permutations II",
-      "lastSubmittedAt": "1777621620"
-    },
-    {
-      "titleSlug": "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
-      "title": "Find the City With the Smallest Number of Neighbors at a Threshold Distance",
-      "lastSubmittedAt": "1771449540"
-    },
-    {
-      "titleSlug": "implement-queue-using-stacks",
-      "title": "Implement Queue using Stacks",
-      "lastSubmittedAt": "1777170720"
-    },
-    {
-      "titleSlug": "move-zeroes",
-      "title": "Move Zeroes",
-      "lastSubmittedAt": "1774468020"
-    },
-    {
-      "titleSlug": "super-ugly-number",
-      "title": "Super Ugly Number",
-      "lastSubmittedAt": "1773769800"
-    },
-    {
-      "titleSlug": "non-overlapping-intervals",
-      "title": "Non-overlapping Intervals",
-      "lastSubmittedAt": "1782458880"
-    },
-    {
-      "titleSlug": "populating-next-right-pointers-in-each-node",
-      "title": "Populating Next Right Pointers",
-      "lastSubmittedAt": "1770241140"
-    },
-    {
-      "titleSlug": "course-schedule",
-      "title": "Course Schedule",
-      "lastSubmittedAt": "1779046860"
-    },
-    {
-      "titleSlug": "find-all-anagrams-in-a-string",
-      "title": "Find All Anagrams in a String",
-      "lastSubmittedAt": "1779973140"
-    },
-    {
-      "titleSlug": "two-sum",
-      "title": "Two Sum",
-      "lastSubmittedAt": "1783330200"
-    },
-    {
-      "titleSlug": "jump-game",
-      "title": "Jump Game",
-      "lastSubmittedAt": "1782700440"
-    },
-    {
-      "titleSlug": "invert binary-tree",
-      "title": "Invert Binary Tree",
-      "lastSubmittedAt": "1764707040"
-    },
-    {
-      "titleSlug": "binary-tree-level-order-traversal",
-      "title": "Binary Tree Level Order Traversal",
-      "lastSubmittedAt": "1768883340"
+      "titleSlug": "n-queens",
+      "title": "N-Queens",
+      "lastSubmittedAt": "1782119166"
     },
     {
       "titleSlug": "n-queens-ii",
       "title": "N-Queens II",
-      "lastSubmittedAt": "1781612340"
+      "lastSubmittedAt": "1781877165"
     },
     {
-      "titleSlug": "basic-calculator-ii",
-      "title": "Basic Calculator II",
-      "lastSubmittedAt": "1784207460"
+      "titleSlug": "single-number",
+      "title": "Single Number",
+      "lastSubmittedAt": "1781863657"
     },
     {
-      "titleSlug": "longest-substring-without-repeating-characters",
-      "title": "Longest Substring Without Repeating Characters",
-      "lastSubmittedAt": "1779448140"
+      "titleSlug": "car-pooling",
+      "title": "Car Pooling",
+      "lastSubmittedAt": "1781692918"
     },
     {
-      "titleSlug": "sliding-window-maximum",
-      "title": "Sliding Window Maximum",
-      "lastSubmittedAt": "1778554620"
+      "titleSlug": "house-robber-iii",
+      "title": "House Robber III",
+      "lastSubmittedAt": "1774348954"
     },
     {
-      "titleSlug": "remove-duplicates-from-sorted-list",
-      "title": "Remove Duplicates from Sorted List",
-      "lastSubmittedAt": "1772010120"
+      "titleSlug": "coin-change-ii",
+      "title": "Coin Change II",
+      "lastSubmittedAt": "1773919539"
     },
     {
-      "titleSlug": "longest-palindromic-substring",
-      "title": "Longest Palindromic Substring",
-      "lastSubmittedAt": "1781578320"
+      "titleSlug": "house-robber-ii",
+      "title": "House Robber II",
+      "lastSubmittedAt": "1773737645"
     },
     {
-      "titleSlug": "binary-tree-postorder-traversal",
-      "title": "Binary Tree Postorder Traversal",
-      "lastSubmittedAt": "1766542680"
+      "titleSlug": "target-sum",
+      "title": "Target Sum",
+      "lastSubmittedAt": "1773395400"
     },
     {
-      "titleSlug": "n-ary-tree-level-order-traversal",
-      "title": "N-ary Tree Level Order Traversal",
-      "lastSubmittedAt": "1771882800"
-    },
-    {
-      "titleSlug": "capacity-to-ship-packages-within-d-days",
-      "title": "Capacity To Ship Packages",
-      "lastSubmittedAt": "1774472880"
-    },
-    {
-      "titleSlug": "burst-balloons",
-      "title": "Burst Balloons",
-      "lastSubmittedAt": "1774398780"
-    },
-    {
-      "titleSlug": "insert-into-a-binary-search-tree",
-      "title": "Insert into a Binary Search Tree",
-      "lastSubmittedAt": "1772157780"
-    },
-    {
-      "titleSlug": "random-pick-index",
-      "title": "Random Pick Index",
-      "lastSubmittedAt": "1773801840"
-    },
-    {
-      "titleSlug": "predict-the-winner",
-      "title": "Predict the Winner",
-      "lastSubmittedAt": "1778791380"
-    },
-    {
-      "titleSlug": "shuffle-an-array",
-      "title": "Shuffle an Array",
-      "lastSubmittedAt": "1772760000"
-    },
-    {
-      "titleSlug": "pancake-sorting",
-      "title": "Pancake Sorting",
-      "lastSubmittedAt": "1778208960"
-    },
-    {
-      "titleSlug": "delete-operation-for-two-strings",
-      "title": "Delete Operations for Two Strings",
-      "lastSubmittedAt": "1777974180"
-    },
-    {
-      "titleSlug": "reverse-words-in-a-string",
-      "title": "Reverse Words in a String",
-      "lastSubmittedAt": "1777247700"
-    },
-    {
-      "titleSlug": "minimum-window-substring",
-      "title": "Minimum Window Substring",
-      "lastSubmittedAt": "1782639360"
-    },
-    {
-      "titleSlug": "set-mismatch",
-      "title": "Set Mismatch",
-      "lastSubmittedAt": "1768997700"
+      "titleSlug": "combination-sum-iii",
+      "title": "Combination Sum III",
+      "lastSubmittedAt": "1771928415"
     },
     {
       "titleSlug": "combination-sum",
       "title": "Combination Sum",
-      "lastSubmittedAt": "1782876840"
+      "lastSubmittedAt": "1771839287"
     },
     {
-      "titleSlug": "course-schedule-ii",
-      "title": "Course Schedule II",
-      "lastSubmittedAt": "1772332440"
+      "titleSlug": "combinations",
+      "title": "Combinations",
+      "lastSubmittedAt": "1771833934"
     },
     {
-      "titleSlug": "middle-of-the-linked-list",
-      "title": "Middle of the Linked List",
-      "lastSubmittedAt": "1782986820"
+      "titleSlug": "subsets",
+      "title": "Subsets",
+      "lastSubmittedAt": "1771000309"
     },
     {
-      "titleSlug": "split-array-largest-sum",
-      "title": "Split Array Largest Sum",
-      "lastSubmittedAt": "1780006560"
+      "titleSlug": "subsets-ii",
+      "title": "Subsets II",
+      "lastSubmittedAt": "1770988663"
     },
     {
-      "titleSlug": "permutation-in-string",
-      "title": "Permutation in String",
-      "lastSubmittedAt": "1771561800"
+      "titleSlug": "combination-sum-ii",
+      "title": "Combination Sum II",
+      "lastSubmittedAt": "1770904461"
     },
     {
-      "titleSlug": "lru-cache",
-      "title": "LRU Cache",
-      "lastSubmittedAt": "1776496320"
+      "titleSlug": "minimum-number-of-arrows-to-burst-balloons",
+      "title": "Minimum Number of Arrows to Burst Balloons",
+      "lastSubmittedAt": "1767691664"
     },
     {
-      "titleSlug": "sliding-puzzle",
-      "title": "Sliding Puzzle",
-      "lastSubmittedAt": "1774841160"
+      "titleSlug": "merge-intervals",
+      "title": "Merge Intervals",
+      "lastSubmittedAt": "1767090644"
     },
     {
-      "titleSlug": "count-primes",
-      "title": "Count Primes",
-      "lastSubmittedAt": "1772226180"
+      "titleSlug": "jump-game-ii",
+      "title": "Jump Game II",
+      "lastSubmittedAt": "1765364362"
+    },
+    {
+      "titleSlug": "video-stitching",
+      "title": "Video Stitching",
+      "lastSubmittedAt": "1765189926"
+    },
+    {
+      "titleSlug": "container-with-most-water",
+      "title": "Container With Most Water",
+      "lastSubmittedAt": "1764854386"
+    },
+    {
+      "titleSlug": "number-of-enclaves",
+      "title": "Number of Enclaves",
+      "lastSubmittedAt": "1760516806"
+    },
+    {
+      "titleSlug": "delete-node-in-a-bst",
+      "title": "Delete Node in a BST",
+      "lastSubmittedAt": "1760348739"
+    },
+    {
+      "titleSlug": "lowest-common-ancestor-of-a-binary-tree",
+      "title": "Lowest Common Ancestor of a Binary Tree",
+      "lastSubmittedAt": "1760085616"
+    },
+    {
+      "titleSlug": "lowest-common-ancestor-of-a-binary-search-tree",
+      "title": "Lowest Common Ancestor of a Binary Search Tree",
+      "lastSubmittedAt": "1760019816"
+    },
+    {
+      "titleSlug": "search-in-a-binary-search-tree",
+      "title": "Search in a Binary Search Tree",
+      "lastSubmittedAt": "1759834847"
+    },
+    {
+      "titleSlug": "binary-tree-level-order-traversal",
+      "title": "Binary Tree Level Order Traversal",
+      "lastSubmittedAt": "1759404226"
+    },
+    {
+      "titleSlug": "implement-stack-using-queues",
+      "title": "Implement Stack using Queues",
+      "lastSubmittedAt": "1755512973"
+    },
+    {
+      "titleSlug": "koko-eating-bananas",
+      "title": "Koko Eating Bananas",
+      "lastSubmittedAt": "1754993792"
+    },
+    {
+      "titleSlug": "next-greater-element-ii",
+      "title": "Next Greater Element II",
+      "lastSubmittedAt": "1753688582"
+    },
+    {
+      "titleSlug": "next-greater-element-i",
+      "title": "Next Greater Element I",
+      "lastSubmittedAt": "1752231940"
+    },
+    {
+      "titleSlug": "implement-queue-using-stacks",
+      "title": "Implement Queue using Stacks",
+      "lastSubmittedAt": "1752056966"
     },
     {
       "titleSlug": "reverse-nodes-in-k-group",
       "title": "Reverse Nodes in k-Group",
-      "lastSubmittedAt": "1778924580"
+      "lastSubmittedAt": "1751450250"
+    },
+    {
+      "titleSlug": "remove-nth-node-from-end-of-list",
+      "title": "Remove Nth Node From End of List",
+      "lastSubmittedAt": "1751019333"
+    },
+    {
+      "titleSlug": "permutation-in-string",
+      "title": "Permutation in String",
+      "lastSubmittedAt": "1750674614"
+    },
+    {
+      "titleSlug": "move-zeroes",
+      "title": "Move Zeroes",
+      "lastSubmittedAt": "1747209132"
+    },
+    {
+      "titleSlug": "capacity-to-ship-packages-within-d-days",
+      "title": "Capacity To Ship Packages Within D Days",
+      "lastSubmittedAt": "1747049910"
+    },
+    {
+      "titleSlug": "minimum-falling-path-sum",
+      "title": "Minimum Falling Path Sum",
+      "lastSubmittedAt": "1746626622"
+    },
+    {
+      "titleSlug": "minimum-path-sum",
+      "title": "Minimum Path Sum",
+      "lastSubmittedAt": "1746614345"
+    },
+    {
+      "titleSlug": "best-time-to-buy-and-sell-stock-with-cooldown",
+      "title": "Best Time to Buy and Sell Stock with Cooldown",
+      "lastSubmittedAt": "1746603326"
+    },
+    {
+      "titleSlug": "best-time-to-buy-and-sell-stock-with-transaction-fee",
+      "title": "Best Time to Buy and Sell Stock with Transaction Fee",
+      "lastSubmittedAt": "1746537977"
+    },
+    {
+      "titleSlug": "best-time-to-buy-and-sell-stock-iv",
+      "title": "Best Time to Buy and Sell Stock IV",
+      "lastSubmittedAt": "1746441317"
+    },
+    {
+      "titleSlug": "longest-common-subsequence",
+      "title": "Longest Common Subsequence",
+      "lastSubmittedAt": "1746431363"
+    },
+    {
+      "titleSlug": "coin-change",
+      "title": "Coin Change",
+      "lastSubmittedAt": "1746420031"
+    },
+    {
+      "titleSlug": "climbing-stairs",
+      "title": "Climbing Stairs",
+      "lastSubmittedAt": "1745835383"
+    },
+    {
+      "titleSlug": "house-robber",
+      "title": "House Robber",
+      "lastSubmittedAt": "1745828554"
+    },
+    {
+      "titleSlug": "permutations",
+      "title": "Permutations",
+      "lastSubmittedAt": "1744714569"
+    },
+    {
+      "titleSlug": "split-array-largest-sum",
+      "title": "Split Array Largest Sum",
+      "lastSubmittedAt": "1744634781"
+    },
+    {
+      "titleSlug": "open-the-lock",
+      "title": "Open the Lock",
+      "lastSubmittedAt": "1742200336"
+    },
+    {
+      "titleSlug": "max-area-of-island",
+      "title": "Max Area of Island",
+      "lastSubmittedAt": "1741602194"
+    },
+    {
+      "titleSlug": "number-of-islands",
+      "title": "Number of Islands",
+      "lastSubmittedAt": "1741180165"
+    },
+    {
+      "titleSlug": "validate-binary-search-tree",
+      "title": "Validate Binary Search Tree",
+      "lastSubmittedAt": "1740728772"
+    },
+    {
+      "titleSlug": "diameter-of-binary-tree",
+      "title": "Diameter of Binary Tree",
+      "lastSubmittedAt": "1740039787"
+    },
+    {
+      "titleSlug": "minimum-depth-of-binary-tree",
+      "title": "Minimum Depth of Binary Tree",
+      "lastSubmittedAt": "1739959310"
+    },
+    {
+      "titleSlug": "maximum-depth-of-binary-tree",
+      "title": "Maximum Depth of Binary Tree",
+      "lastSubmittedAt": "1739541140"
+    },
+    {
+      "titleSlug": "sliding-window-maximum",
+      "title": "Sliding Window Maximum",
+      "lastSubmittedAt": "1739279791"
+    },
+    {
+      "titleSlug": "daily-temperatures",
+      "title": "Daily Temperatures",
+      "lastSubmittedAt": "1739272171"
+    },
+    {
+      "titleSlug": "lru-cache",
+      "title": "LRU Cache",
+      "lastSubmittedAt": "1738661839"
+    },
+    {
+      "titleSlug": "palindrome-linked-list",
+      "title": "Palindrome Linked List",
+      "lastSubmittedAt": "1738582197"
+    },
+    {
+      "titleSlug": "reverse-linked-list-ii",
+      "title": "Reverse Linked List II",
+      "lastSubmittedAt": "1738254352"
+    },
+    {
+      "titleSlug": "swap-nodes-in-pairs",
+      "title": "Swap Nodes in Pairs",
+      "lastSubmittedAt": "1737732593"
+    },
+    {
+      "titleSlug": "remove-duplicates-from-sorted-list",
+      "title": "Remove Duplicates from Sorted List",
+      "lastSubmittedAt": "1737724933"
+    },
+    {
+      "titleSlug": "middle-of-the-linked-list",
+      "title": "Middle of the Linked List",
+      "lastSubmittedAt": "1737627313"
+    },
+    {
+      "titleSlug": "linked-list-cycle",
+      "title": "Linked List Cycle",
+      "lastSubmittedAt": "1737626678"
+    },
+    {
+      "titleSlug": "longest-substring-without-repeating-characters",
+      "title": "Longest Substring Without Repeating Characters",
+      "lastSubmittedAt": "1737451094"
+    },
+    {
+      "titleSlug": "two-sum",
+      "title": "Two Sum",
+      "lastSubmittedAt": "1736502259"
+    },
+    {
+      "titleSlug": "range-sum-query-immutable",
+      "title": "Range Sum Query - Immutable",
+      "lastSubmittedAt": "1736351601"
+    },
+    {
+      "titleSlug": "reverse-string",
+      "title": "Reverse String",
+      "lastSubmittedAt": "1735303166"
+    },
+    {
+      "titleSlug": "fibonacci-number",
+      "title": "Fibonacci Number",
+      "lastSubmittedAt": "1731935680"
+    },
+    {
+      "titleSlug": "maximum-subarray",
+      "title": "Maximum Subarray",
+      "lastSubmittedAt": "1727258521"
+    },
+    {
+      "titleSlug": "best-time-to-buy-and-sell-stock",
+      "title": "Best Time to Buy and Sell Stock",
+      "lastSubmittedAt": "1726845342"
+    },
+    {
+      "titleSlug": "longest-increasing-subsequence",
+      "title": "Longest Increasing Subsequence",
+      "lastSubmittedAt": "1724901629"
+    },
+    {
+      "titleSlug": "course-schedule-ii",
+      "title": "Course Schedule II",
+      "lastSubmittedAt": "1711533240"
+    },
+    {
+      "titleSlug": "cheapest-flights-within-k-stops",
+      "title": "Cheapest Flights Within K Stops",
+      "lastSubmittedAt": "1710234492"
+    },
+    {
+      "titleSlug": "min-cost-to-connect-all-points",
+      "title": "Min Cost to Connect All Points",
+      "lastSubmittedAt": "1707299926"
+    },
+    {
+      "titleSlug": "n-ary-tree-level-order-traversal",
+      "title": "N-ary Tree Level Order Traversal",
+      "lastSubmittedAt": "1706535725"
+    },
+    {
+      "titleSlug": "populating-next-right-pointers-in-each-node",
+      "title": "Populating Next Right Pointers in Each Node",
+      "lastSubmittedAt": "1706173368"
+    },
+    {
+      "titleSlug": "reverse-words-in-a-string",
+      "title": "Reverse Words in a String",
+      "lastSubmittedAt": "1699613078"
+    },
+    {
+      "titleSlug": "remove-element",
+      "title": "Remove Element",
+      "lastSubmittedAt": "1698917002"
+    },
+    {
+      "titleSlug": "spiral-matrix",
+      "title": "Spiral Matrix",
+      "lastSubmittedAt": "1697806556"
+    },
+    {
+      "titleSlug": "find-duplicate-subtrees",
+      "title": "Find Duplicate Subtrees",
+      "lastSubmittedAt": "1696330907"
+    },
+    {
+      "titleSlug": "insert-into-a-binary-search-tree",
+      "title": "Insert into a Binary Search Tree",
+      "lastSubmittedAt": "1690888227"
+    },
+    {
+      "titleSlug": "n-ary-tree-postorder-traversal",
+      "title": "N-ary Tree Postorder Traversal",
+      "lastSubmittedAt": "1690391821"
+    },
+    {
+      "titleSlug": "n-ary-tree-preorder-traversal",
+      "title": "N-ary Tree Preorder Traversal",
+      "lastSubmittedAt": "1690303998"
+    },
+    {
+      "titleSlug": "two-sum-ii-input-array-is-sorted",
+      "title": "Two Sum II - Input Array Is Sorted",
+      "lastSubmittedAt": "1689349787"
+    },
+    {
+      "titleSlug": "find-first-and-last-position-of-element-in-sorted-array",
+      "title": "Find First and Last Position of Element in Sorted Array",
+      "lastSubmittedAt": "1687872167"
+    },
+    {
+      "titleSlug": "binary-search",
+      "title": "Binary Search",
+      "lastSubmittedAt": "1687340527"
+    },
+    {
+      "titleSlug": "sudoku-solver",
+      "title": "Sudoku Solver",
+      "lastSubmittedAt": "1680880492"
+    },
+    {
+      "titleSlug": "unique-binary-search-trees-ii",
+      "title": "Unique Binary Search Trees II",
+      "lastSubmittedAt": "1679398604"
+    },
+    {
+      "titleSlug": "merge-two-sorted-lists",
+      "title": "Merge Two Sorted Lists",
+      "lastSubmittedAt": "1679312319"
+    },
+    {
+      "titleSlug": "reverse-linked-list",
+      "title": "Reverse Linked List",
+      "lastSubmittedAt": "1678960074"
+    },
+    {
+      "titleSlug": "serialize-and-deserialize-binary-tree",
+      "title": "Serialize and Deserialize Binary Tree",
+      "lastSubmittedAt": "1652451344"
+    },
+    {
+      "titleSlug": "binary-tree-preorder-traversal",
+      "title": "Binary Tree Preorder Traversal",
+      "lastSubmittedAt": "1652434930"
+    },
+    {
+      "titleSlug": "construct-binary-tree-from-inorder-and-postorder-traversal",
+      "title": "Construct Binary Tree from Inorder and Postorder Traversal",
+      "lastSubmittedAt": "1652180523"
+    },
+    {
+      "titleSlug": "construct-binary-tree-from-preorder-and-inorder-traversal",
+      "title": "Construct Binary Tree from Preorder and Inorder Traversal",
+      "lastSubmittedAt": "1652159564"
+    },
+    {
+      "titleSlug": "binary-tree-postorder-traversal",
+      "title": "Binary Tree Postorder Traversal",
+      "lastSubmittedAt": "1651576400"
+    },
+    {
+      "titleSlug": "binary-tree-inorder-traversal",
+      "title": "Binary Tree Inorder Traversal",
+      "lastSubmittedAt": "1651501360"
+    },
+    {
+      "titleSlug": "remove-duplicates-from-sorted-array",
+      "title": "Remove Duplicates from Sorted Array",
+      "lastSubmittedAt": "1651227680"
+    },
+    {
+      "titleSlug": "rotate-list",
+      "title": "Rotate List",
+      "lastSubmittedAt": "1650984067"
+    },
+    {
+      "titleSlug": "linked-list-cycle-ii",
+      "title": "Linked List Cycle II",
+      "lastSubmittedAt": "1650368615"
+    },
+    {
+      "titleSlug": "intersection-of-two-linked-lists",
+      "title": "Intersection of Two Linked Lists",
+      "lastSubmittedAt": "1650367500"
+    },
+    {
+      "titleSlug": "count-primes",
+      "title": "Count Primes",
+      "lastSubmittedAt": "1622696538"
     }
   ],
   "totalSolved": 466
