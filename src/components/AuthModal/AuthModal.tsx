@@ -37,12 +37,10 @@ export default function AuthModal({ isOpen, onClose, onDone }: AuthModalProps) {
   const submit = async (useMock: boolean) => {
     setError(null);
 
-    if (!username.trim()) {
-      setError("Please enter your LeetCode username.");
-      return;
+    const trimmedUser = (username.trim() || "bytrangle").trim();
+    if (useMock) {
+      setUsername(trimmedUser);
     }
-
-    const trimmedUser = username.trim();
 
     if (!useMock && !leetcodeCookie.trim()) {
       setError("LEETCODE_SESSION is required for Sync.");
