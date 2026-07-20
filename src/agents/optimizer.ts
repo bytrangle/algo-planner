@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // LLM-driven agent that:
 //  1. Takes the Designer's initial plan
-//  2. Orders problems by skill weakness (weakest first)
+//  2. Orders problems by topic coverage ratio (lowest % first)
 //  3. Optionally extends the timeframe to fit all problems comfortably
 // ---------------------------------------------------------------------------
 
@@ -15,10 +15,24 @@ import type { StudyPlanParams, UserCapacity } from "./analyst";
 // Types
 // ---------------------------------------------------------------------------
 
+interface SkillEntry {
+  tagName: string;
+  tagSlug: string;
+  problemsSolved: number;
+}
+
 export interface UserSkills {
-  advanced: { tagName: string; tagSlug: string; problemsSolved: number }[];
-  intermediate: { tagName: string; tagSlug: string; problemsSolved: number }[];
-  fundamental: { tagName: string; tagSlug: string; problemsSolved: number }[];
+  advanced: SkillEntry[];
+  intermediate: SkillEntry[];
+  fundamental: SkillEntry[];
+}
+
+export interface TopicCoverage {
+  tagName: string;
+  tagSlug: string;
+  problemsSolved: number;
+  totalProblems: number;
+  ratio: number;
 }
 
 export interface OptimizedPlan extends DesignerOutput {
@@ -54,6 +68,90 @@ async function fetchUserSkills(username: string): Promise<UserSkills> {
   return res.json();
 }
 
+interface TagEntry {
+  tagName: string;
+  tagSlug: string;
+  questionCount: number;
+}
+
+async function fetchTags(): Promise<TagEntry[]> {
+  const res = await fetch("https://leetcode-api-pied.vercel.app/tags");
+  if (!res.ok) throw new Error(`Tags fetch failed: ${res.status}`);
+  const data = await res.json();
+
+  // Handle both { topics: [...] } and plain array responses
+  const list: unknown[] = Array.isArray(data) ? data : data.topics ?? [];
+
+  return list.map((t) => {
+    const r = t as Record<string, unknown>;
+    return {
+      tagName: (r.tagName ?? r.name ?? "") as string,
+      tagSlug: (r.tagSlug ?? r.slug ?? "") as string,
+      questionCount: (r.questionCount ?? r.questions ?? r.count ?? 0) as number,
+    };
+  });
+}
+
+/** Compute coverage ratio per topic: problemsSolved / totalProblems.
+ *  Ignores topics missing from the tags endpoint.  Sorted weakest first. */
+function computeCoverage(
+  skills: UserSkills,
+  tags: TagEntry[],
+): TopicCoverage[] {
+  // Build slug → totalProblems map
+  const totalMap = new Map<string, number>();
+  for (const t of tags) {
+    if (t.tagSlug) totalMap.set(t.tagSlug, t.questionCount);
+  }
+
+  // Flatten all three skill buckets
+  const allSkills: SkillEntry[] = [
+    ...skills.fundamental,
+    ...skills.intermediate,
+    ...skills.advanced,
+  ];
+
+  const result: TopicCoverage[] = [];
+  for (const s of allSkills) {
+    const total = totalMap.get(s.tagSlug);
+    if (!total || total === 0) continue; // skip missing or zero-total topics
+    result.push({
+      tagName: s.tagName,
+      tagSlug: s.tagSlug,
+      problemsSolved: s.problemsSolved,
+      totalProblems: total,
+      ratio: s.problemsSolved / total,
+    });
+  }
+
+  result.sort((a, b) => a.ratio - b.ratio);
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Flatten: extract all { slug, priority, ... } items from the designer's plan
+// ---------------------------------------------------------------------------
+
+interface FlatItem {
+  slug: string;
+  priority: string;
+  topics: string[];
+  difficulty: string;
+}
+
+function flattenPlanProblems(output: DesignerOutput): FlatItem[] {
+  const items: FlatItem[] = [];
+  for (const day of output.plan) {
+    for (const p of day.essential) {
+      items.push({ slug: p.slug, priority: "essential", topics: p.topics, difficulty: p.difficulty });
+    }
+    for (const p of day.extra) {
+      items.push({ slug: p.slug, priority: "extra", topics: p.topics, difficulty: p.difficulty });
+    }
+  }
+  return items;
+}
+
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
@@ -65,24 +163,44 @@ export async function optimizeStudyPlan(
   username: string,
   send: (event: OptimizerEvent) => void,
 ): Promise<OptimizedPlan> {
-  send({ type: "log", message: `Fetching user skills for ${username}...` });
-  let userSkills: UserSkills | null = null;
+  const allItems = flattenPlanProblems(designerOutput);
+
+  // Fetch coverage and sort problems algorithmically (not LLM-driven)
+  let coverage: TopicCoverage[] | null = null;
+  let orderedItems = allItems;
+
   try {
-    userSkills = await fetchUserSkills(username);
+    send({ type: "log", message: `Fetching skills & tags for ${username}...` });
+    const [userSkills, tags] = await Promise.all([
+      fetchUserSkills(username),
+      fetchTags(),
+    ]);
+    coverage = computeCoverage(userSkills, tags);
     send({
       type: "log",
-      message: `Found skills: ${userSkills.fundamental.length} fundamental, ${userSkills.intermediate.length} intermediate, ${userSkills.advanced.length} advanced`,
+      message: `Topic coverage (weak→strong): ${coverage.map(c => `${c.tagName} ${Math.round(c.ratio * 100)}%`).join(", ")}`,
     });
+
+    // Sort by weakest topic coverage ratio
+    const covMap = new Map<string, number>();
+    for (const c of coverage) covMap.set(c.tagName, c.ratio);
+    orderedItems = [...allItems].sort((a, b) => {
+      const aMin = Math.min(...a.topics.map((t) => covMap.get(t) ?? 1));
+      const bMin = Math.min(...b.topics.map((t) => covMap.get(t) ?? 1));
+      return aMin - bMin;
+    });
+    send({ type: "log", message: `${orderedItems.length} problems sorted by coverage.` });
   } catch (err) {
-    send({ type: "log", message: `Skills fetch skipped: ${err}` });
+    send({ type: "log", message: `Coverage fetch skipped: ${err}` });
   }
 
-  const prompt = buildPrompt(designerOutput, studyInfo, userCapacity, userSkills);
+  // LLM only writes the reasoning paragraph — ordering is already done
+  const prompt = buildPrompt(designerOutput, studyInfo, userCapacity, coverage);
 
   const apiMessages = [
     {
       role: "system" as const,
-      content: "You are Optimizer. Reorder problems so weakest topics come first.",
+      content: "You are Optimizer. Write a 1-2 sentence reasoning about why this ordering makes sense for this learner.",
     },
     { role: "user" as const, content: prompt },
   ];
@@ -91,7 +209,7 @@ export async function optimizeStudyPlan(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const completionStream = await (openai.chat.completions as any).create({
-    model: "qwen3.5-plus-2026-04-20",
+    model: "qwen3.7-plus-2026-05-26",
     messages: apiMessages,
     temperature: 0.2,
     stream: true,
@@ -111,7 +229,7 @@ export async function optimizeStudyPlan(
     }
   }
 
-  const optimizedPlan = parseAndRebuild(contentBuffer, designerOutput, studyInfo);
+  const optimizedPlan = parseAndRebuild(contentBuffer, designerOutput, studyInfo, orderedItems);
   send({ type: "optimizer", result: optimizedPlan });
   return optimizedPlan;
 }
@@ -124,49 +242,31 @@ function buildPrompt(
   designerOutput: DesignerOutput,
   studyInfo: StudyPlanParams,
   userCapacity: UserCapacity,
-  userSkills: UserSkills | null,
+  coverage: TopicCoverage[] | null,
 ): string {
-  const { plan, summary } = designerOutput;
-
-  // Flat problem list: slug + difficulty + topics + priority
-  const problems: { slug: string; d: string; t: string[]; p: string }[] = [];
-  for (const day of plan) {
-    for (const p of day.essential) {
-      problems.push({ slug: p.slug, d: p.difficulty[0], t: p.topics, p: "essential" });
-    }
-    for (const p of day.extra) {
-      problems.push({ slug: p.slug, d: p.difficulty[0], t: p.topics, p: "extra" });
-    }
-  }
-
-  const planTopics = new Set<string>();
-  for (const p of problems) {
-    for (const t of p.t) planTopics.add(t);
-  }
+  const { summary } = designerOutput;
 
   let skillsSection = "";
-  if (userSkills) {
-    const mapTag = (t: { tagName: string }) => t.tagName;
+  if (coverage) {
+    const lines = coverage.map(
+      (c) => `${c.tagName} (${c.problemsSolved}/${c.totalProblems} = ${Math.round(c.ratio * 100)}%)`,
+    );
     skillsSection = `
-=== USER SKILLS ===
-Weakest: ${userSkills.fundamental.map(mapTag).join(", ") || "none"}
-Weaker: ${userSkills.intermediate.map(mapTag).join(", ") || "none"}
-Strong: ${userSkills.advanced.map(mapTag).join(", ") || "none"}`;
+=== TOPIC COVERAGE (weak → strong) ===
+${lines.join("\n")}`;
   }
 
+  // Problems have been algorithmically sorted by weakest topic coverage.
+  // The LLM's only job is to write a brief reasoning paragraph.
   return `=== PLAN ===
 ${summary.totalProblems} problems (${summary.essentialCount} essential, ${summary.extraCount} extra)
 ${summary.totalDays} days, ${studyInfo.hoursPerDay}h/day, ${summary.totalHours}h essentials
-Timeframe: ${studyInfo.timeFrameDays}d, extendable
+Timeframe: ${studyInfo.timeFrameDays}d
 ${skillsSection}
 
-=== PROBLEMS (${problems.length}) ===
-${JSON.stringify(problems)}
-
 === TASK ===
-Output a JSON array of problem slugs in order: weakest topics first, then weaker, strong last.
-You may also extend the timeframe if needed (extendDays).
-{"extendDays": N, "order": ["slug1","slug2",...], "reasoning": "..."}`;
+Write 1-2 sentences explaining why this ordering (weak topics first) is good for the learner.
+Output ONLY the reasoning text — no JSON, no code blocks.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -177,96 +277,67 @@ function parseAndRebuild(
   content: string,
   originalOutput: DesignerOutput,
   studyInfo: StudyPlanParams,
+  orderedItems: FlatItem[],
 ): OptimizedPlan {
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return { ...originalOutput, optimizations: {} };
+  // Use LLM output as plain reasoning text
+  const reasoning = content.replace(/```[\s\S]*?```/g, "").trim() || undefined;
+
+  // Build slug → full problem lookup
+  const problemMap = new Map<string, { problem: ProblemObj; priority: string }>();
+  for (const day of originalOutput.plan) {
+    for (const p of day.essential) {
+      problemMap.set(p.slug, { problem: p as unknown as ProblemObj, priority: "essential" });
+    }
+    for (const p of day.extra) {
+      problemMap.set(p.slug, { problem: p as unknown as ProblemObj, priority: "extra" });
+    }
   }
 
-  try {
-    const parsed = JSON.parse(jsonMatch[0]);
-    const order: string[] = parsed.order || [];
-    const extendDays: number = parsed.extendDays || 0;
-    const reasoning: string = parsed.reasoning || "";
+  // Map ordered slugs to full problem objects
+  const ordered = orderedItems
+    .map((item) => problemMap.get(item.slug))
+    .filter(Boolean) as { problem: ProblemObj; priority: string }[];
 
-    if (!order.length) {
-      return { ...originalOutput, optimizations: {} };
-    }
-
-    // Build slug → full problem lookup
-    const problemMap = new Map<string, { problem: typeof originalOutput.plan[0]["essential"][0]; priority: string }>();
-    for (const day of originalOutput.plan) {
-      for (const p of day.essential) {
-        problemMap.set(p.slug, { problem: p, priority: "essential" });
-      }
-      for (const p of day.extra) {
-        problemMap.set(p.slug, { problem: p, priority: "extra" });
-      }
-    }
-
-    // Ordered list of full problems
-    const ordered = order
-      .map((slug) => problemMap.get(slug))
-      .filter(Boolean) as { problem: typeof originalOutput.plan[0]["essential"][0]; priority: string }[];
-
-    // Reuse Designer's dates AND dayOfWeek — no recomputation
-    const dateToDay: Record<string, string> = {};
-    for (const d of originalOutput.plan) {
-      dateToDay[d.date] = d.dayOfWeek;
-    }
-    const dates = originalOutput.plan.map((d) => d.date);
-
-    // Extend if needed: append extra study days after the last date
-    if (extendDays > 0) {
-      const lastDate = new Date(dates[dates.length - 1] + "T00:00:00");
-      const daySet = new Set(studyInfo.studyDays);
-      let added = 0;
-      let cursor = 1;
-      while (added < extendDays) {
-        const d = new Date(lastDate);
-        d.setDate(d.getDate() + cursor);
-        cursor++;
-        if (daySet.has(d.getDay())) {
-          const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, "0");
-          const day = String(d.getDate()).padStart(2, "0");
-          const ds = `${y}-${m}-${day}`;
-          dates.push(ds);
-          dateToDay[ds] = DAYS[d.getDay()];
-          added++;
-        }
-      }
-    }
-
-    // Mechanical redistribution
-    const plan = redistribute(ordered, dates, dateToDay, studyInfo.studyDays);
-
-    const essentialCount = plan.reduce((s, d) => s + d.essential.length, 0);
-    const extraCount = plan.reduce((s, d) => s + d.extra.length, 0);
-    const totalHours = plan.reduce(
-      (s, d) => s + d.essential.reduce((t, p) => t + p.timeHours, 0),
-      0,
-    );
-
-    return {
-      plan: plan as unknown as DesignerOutput["plan"],
-      summary: {
-        totalProblems: essentialCount + extraCount,
-        essentialCount,
-        extraCount,
-        totalDays: plan.length,
-        totalHours: Math.round(totalHours * 10) / 10,
-      },
-      rationale: originalOutput.rationale,
-      optimizations: {
-        skillBasedAdjustments: reasoning || undefined,
-      },
-    };
-  } catch (err) {
-    console.warn("Optimizer: parse failed, using original plan:", err);
-    return { ...originalOutput, optimizations: {} };
+  // Reuse Designer's dates AND dayOfWeek — no recomputation
+  const dateToDay: Record<string, string> = {};
+  for (const d of originalOutput.plan) {
+    dateToDay[d.date] = d.dayOfWeek;
   }
+  const dates = originalOutput.plan.map((d) => d.date);
+
+  // Mechanical redistribution — respects hoursPerDay, extends plan if needed
+  const plan = redistribute(ordered, dates, dateToDay, studyInfo.studyDays, studyInfo.hoursPerDay);
+
+  const essentialCount = plan.reduce((s, d) => s + d.essential.length, 0);
+  const extraCount = plan.reduce((s, d) => s + d.extra.length, 0);
+  const totalHours = plan.reduce(
+    (s, d) => s + d.essential.reduce((t, p) => t + p.timeHours, 0),
+    0,
+  );
+
+  // Note if the plan was extended beyond the original date range
+  const originalDays = dates.length;
+  const extendedBy = plan.length - originalDays;
+  let finalReasoning = reasoning;
+  if (extendedBy > 0) {
+    const note = ` Plan extended by ${extendedBy} day${extendedBy > 1 ? "s" : ""} (${originalDays} → ${plan.length}) to fit all problems within ${studyInfo.hoursPerDay}h/day.`;
+    finalReasoning = reasoning ? reasoning + note : note.trim();
+  }
+
+  return {
+    plan: plan as unknown as DesignerOutput["plan"],
+    summary: {
+      totalProblems: essentialCount + extraCount,
+      essentialCount,
+      extraCount,
+      totalDays: plan.length,
+      totalHours: Math.round(totalHours * 10) / 10,
+    },
+    rationale: originalOutput.rationale,
+    optimizations: {
+      skillBasedAdjustments: finalReasoning,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -283,6 +354,7 @@ function redistribute(
   dates: string[],
   dateToDay: Record<string, string>,
   studyDays: number[],
+  hoursPerDay: number,
 ) {
   type DayPlan = {
     date: string;
@@ -291,25 +363,44 @@ function redistribute(
     extra: ProblemObj[];
   };
 
-  const days: DayPlan[] = dates.map((d) => ({
+  let days: DayPlan[] = dates.map((d) => ({
     date: d,
     dayOfWeek: dateToDay[d] ?? "",
     essential: [],
     extra: [],
   }));
-  const dayHours = new Array(days.length).fill(0);
-  const dayExtras = new Array(days.length).fill(0);
+  const dayHours: number[] = new Array(days.length).fill(0);
+  const dayExtras: number[] = new Array(days.length).fill(0);
 
   const extras: { problem: ProblemObj; priority: string }[] = [];
 
-  // Phase 1: distribute essential problems (greedy bin-packing by hours)
+  // Phase 1: distribute essential problems (greedy bin-packing, capped at hoursPerDay)
   for (const item of problems) {
     if (item.problem.priority === "essential" || item.priority === "essential") {
-      let best = 0;
-      let bestHours = dayHours[0];
+      // Find the lightest day that can fit this problem within hoursPerDay
+      let best = -1;
+      let bestHours = Infinity;
       for (let i = 0; i < days.length; i++) {
-        if (dayHours[i] < bestHours) { bestHours = dayHours[i]; best = i; }
+        if (dayHours[i] + item.problem.timeHours <= hoursPerDay && dayHours[i] < bestHours) {
+          bestHours = dayHours[i];
+          best = i;
+        }
       }
+
+      if (best === -1) {
+        // All days would exceed hoursPerDay — extend the plan
+        const newDate = extendByOneDay(days, dateToDay, studyDays);
+        days.push({
+          date: newDate.date,
+          dayOfWeek: newDate.dayOfWeek,
+          essential: [],
+          extra: [],
+        });
+        dayHours.push(0);
+        dayExtras.push(0);
+        best = days.length - 1;
+      }
+
       days[best].essential.push({ ...item.problem, priority: "essential" as Priority });
       dayHours[best] += item.problem.timeHours;
     } else {
@@ -317,22 +408,22 @@ function redistribute(
     }
   }
 
-  // Phase 2: distribute extra problems (round-robin, max 2/day)
+  // Phase 2: distribute extra problems (round-robin, max 2/day, also capped at hoursPerDay)
   let extraIdx = 0;
   for (const item of extras) {
-    // Try to find a day under the cap
     let placed = false;
     for (let attempt = 0; attempt < days.length && !placed; attempt++) {
       const i = (extraIdx + attempt) % days.length;
-      if (dayExtras[i] < MAX_EXTRAS_PER_DAY) {
+      if (dayExtras[i] < MAX_EXTRAS_PER_DAY && dayHours[i] + item.problem.timeHours <= hoursPerDay) {
         days[i].extra.push({ ...item.problem, priority: "extra" as Priority });
         dayExtras[i]++;
-        extraIdx = i + 1; // continue from next day
+        dayHours[i] += item.problem.timeHours;
+        extraIdx = i + 1;
         placed = true;
       }
     }
 
-    // If all days are at cap, extend by one day and place there
+    // If no existing day can take it, extend
     if (!placed) {
       const newDate = extendByOneDay(days, dateToDay, studyDays);
       days.push({
@@ -341,7 +432,7 @@ function redistribute(
         essential: [],
         extra: [{ ...item.problem, priority: "extra" as Priority }],
       });
-      dayHours.push(0);
+      dayHours.push(item.problem.timeHours);
       dayExtras.push(1);
       dateToDay[newDate.date] = newDate.dayOfWeek;
       extraIdx = days.length;

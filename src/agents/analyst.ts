@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 // LLM-driven agent that:
 //  1. Extracts study parameters from the learner's natural language message
-//  2. Decides whether to call LeetCode behavioural-data functions
-//  3. Compiles timeFrameDays, hoursPerDay, studyDays and hands off to Designer
+//  2. Fetches LeetCode behavioural data to fill missing parameters
+//  3. Returns finalised studyInfo — no questions, no continuation
 // ---------------------------------------------------------------------------
 
 import OpenAI from "openai";
@@ -20,29 +20,14 @@ export interface StudyPlanParams {
 }
 
 export interface UserCapacity {
-  /** Problems per week based on historical submission data. */
   weeklyVelocity: number;
-  /** True when the learner's requested timeline is significantly shorter
-   *  than what their velocity suggests. */
   isAggressiveTimeline: boolean;
 }
 
 export interface AnalystResult {
   thinkingLogs: string[];
-  /** Finalised study parameters — ready for Designer. */
   studyInfo: StudyPlanParams;
-  /** Human-readable reasoning the UI can display. */
   reasoning: string;
-  /** Clarification question when more info is needed, null when ready. */
-  question: string | null;
-  /**
-   * When the Analyst's data-driven recommendation differs from what the
-   * learner explicitly stated, this explains the contrast (e.g. "Your 12-week
-   * plan requires 7.5 probs/week but your pace is 3/week").
-   * Null when there is no conflict or it has been resolved.
-   */
-  conflictExplanation: string | null;
-  /** Capacity metrics derived from LeetCode data. */
   userCapacity: UserCapacity;
 }
 
@@ -123,13 +108,9 @@ export async function fetchLeetCodeProfile(
 }
 
 // ---------------------------------------------------------------------------
-// Tool implementations — concrete computations the LLM calls
+// Tool implementations
 // ---------------------------------------------------------------------------
 
-/**
- * Weekly problem-solving velocity from submission history.
- * (total submissions / days with data) × 7
- */
 export function calculateVelocity(calendar: LeetCodeCalendar): number {
   const entries = Object.values(calendar.submissionCalendar);
   if (entries.length === 0) return 0;
@@ -137,13 +118,8 @@ export function calculateVelocity(calendar: LeetCodeCalendar): number {
   return (total / entries.length) * 7;
 }
 
-/**
- * Top 3 days of the week the learner is most active, sorted Sun→Sat.
- */
-
-
 // ---------------------------------------------------------------------------
-// LLM tool definitions — only concrete computations the LLM can't easily do
+// LLM tool definitions
 // ---------------------------------------------------------------------------
 
 const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
@@ -152,7 +128,7 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: "fetchLeetCodeProfile",
       description:
-        "Fetch a learner's LeetCode calendar and badges. The calendar contains submission counts per day; badges show milestone achievements (streak, yearly, etc.). Use this raw data to assess their consistency, velocity, and habits.",
+        "Fetch a learner's LeetCode calendar and badges. The calendar contains submission counts per day; badges show milestone achievements (streak, yearly, etc.). Use this to estimate hoursPerDay and assess consistency.",
       parameters: {
         type: "object",
         properties: {
@@ -186,45 +162,26 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 // System prompt
 // ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `You are **Analyst**, the first agent in a multi-agent system that creates personalised
-algorithm study plans.
+const SYSTEM_PROMPT = `You are Analyst. Extract study-plan parameters from the learner's message,
+filling gaps with LeetCode behavioural data.
 
-**Your job:**
+1. Extract what they stated: timeframe, hours/day, studyDays.
+   "3 months"=90, "6 weeks"=42, "1 month"=30, "2h"=2.
+   studyDays as an array of number: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 0=Sun.
 
-1. **Extract parameters** the learner stated:
-   - timeFrameDays: "3 months" → 90, "6 weeks" → 42, "1 month" → 30
-   - hoursPerDay: "2 hours" → 2, "1.5h" → 1.5
-   - studyDays: 0=Sun…6=Sat, "Mon-Fri" → [1,2,3,4,5]
+2. Call fetchLeetCodeProfile then calculateVelocity to get their data.
 
-2. **Call tools**: \`fetchLeetCodeProfile\` then \`calculateVelocity\`.
-   From the data, infer:
-   - hoursPerDay from badge tiers / streak (if not stated)
-   - recommended timeframe = (90 ÷ weeklyVelocity) weeks, rounded up, × 7
-   - isAggressiveTimeline = learner's days < 70% of recommended
+3. Fill missing parameters:
+   - timeFrameDays: default 90 if not stated
+   - hoursPerDay: estimate from velocity (~2.5/day = 2h, ~5/day = 3h, <2/day = 1h)
+   - studyDays: default [1,2,3,4,5] (Mon-Fri) if not stated
+   - Reasoning: 1-2 sentences summarising what you did
 
-3. **Report back**. Your response does TWO things in one go:
-   - Share what you learned (velocity, badges, recommended timeframe)
-   - Ask ONE question if anything is missing or the data suggests otherwise.
-     - If any extracted parameter from the learner is missing → ask if the learner wants to use your insight, or if they have a preference.
-     - If your recommendation differs from the extracted parameters from learner's message → mention it and ask which to use.
-     - Combine both into a single sentence.
-
-   **You get ONE question. After the learner replies, finalise and return
-   \`question: null\`.** Accept their answers — if they override you, use
-   their numbers. If they give partial answers, fill gaps with defaults.
-
-4. **Defaults** (only when neither learner nor data provides a value):
-   timeFrameDays=90, hoursPerDay=3, studyDays=[1,2,3,4,5]
-
-5. **Output** — ONLY valid JSON:
-
+Output ONLY valid JSON:
 {
   "studyInfo": { "timeFrameDays": N, "hoursPerDay": N, "studyDays": [...] },
-  "reasoning": "<1-2 sentence summary of what you found>",
-  "question": "<one question covering everything | null>",
-  "conflictExplanation": "<why data differs from request | null>",
-  "userCapacity": { "weeklyVelocity": N, "isAggressiveTimeline": bool },
-  "thinkingLogs": ["<step>", ...]
+  "reasoning": "<1-2 sentence summary>",
+  "userCapacity": { "weeklyVelocity": N }
 }`;
 
 // ---------------------------------------------------------------------------
@@ -254,13 +211,13 @@ async function dispatchTool(
 export type AnalystEvent =
   | { type: "log"; message: string }
   | { type: "content_delta"; text: string }
-  | { type: "analyst"; result: AnalystResult }
+  | { type: "analyst_done"; reasoning: string; studyInfo: StudyPlanParams; userCapacity: UserCapacity }
   | { type: "error"; message: string };
 
 export type StreamController = (event: AnalystEvent) => void;
 
 // ---------------------------------------------------------------------------
-// Main entry point — streaming via Qwen DashScope native SSE
+// Main entry point
 // ---------------------------------------------------------------------------
 
 export async function analyzeStudyPlan(
@@ -268,9 +225,7 @@ export async function analyzeStudyPlan(
   username: string,
   stream?: StreamController,
 ): Promise<AnalystResult> {
-  // Build messages with explicit cache control for static content
   const apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    // System prompt — cached (large, static)
     {
       role: "system",
       content: [
@@ -282,13 +237,12 @@ export async function analyzeStudyPlan(
         },
       ],
     },
-    // User context — cached (static per user session)
     {
       role: "system",
       content: [
         {
           type: "text",
-          text: `The learner's LeetCode username is "${username}". Call \`fetchLeetCodeProfile\` to get their behavioural data, then \`calculateVelocity\` on the calendar. Use the raw profile (badges, streak, active days) to reason about their consistency and determine \`hoursPerDay\`.`,
+          text: `LeetCode username: "${username}". Call fetchLeetCodeProfile to get their behavioural data, then calculateVelocity on the calendar. Estimate hoursPerDay from velocity if not stated.`,
           // @ts-expect-error — cache_control is a DashScope extension
           cache_control: { type: "ephemeral" },
         },
@@ -296,7 +250,6 @@ export async function analyzeStudyPlan(
     },
   ];
 
-  // Dynamic conversation history — not cached
   for (const m of messages) {
     apiMessages.push({
       role: m.role as "user" | "assistant",
@@ -307,17 +260,12 @@ export async function analyzeStudyPlan(
   const thinkingLogs: string[] = [];
 
   for (let turn = 0; turn < 8; turn++) {
-    // ---------- native streaming ----------
-    // extra_body is a DashScope extension not in the OpenAI SDK types
-    // Enable thinking only after tool results are in the conversation
-    // (i.e., when the LLM is about to produce the final analysis).
-    // Tool-calling turns don't need the overhead.
     const hasToolResults = apiMessages.some(
       (m) => m.role === "tool" || (m.role === "assistant" && "tool_calls" in m),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const completionStream = await (openai.chat.completions as any).create({
-      model: "qwen3.5-plus",
+      model: "qwen3.6-plus",
       messages: apiMessages,
       tools: TOOLS,
       temperature: 0.2,
@@ -325,7 +273,6 @@ export async function analyzeStudyPlan(
       extra_body: { enable_thinking: hasToolResults },
     });
 
-    // Accumulators for deltas
     let contentBuffer = "";
     const toolAccumulators = new Map<
       number,
@@ -337,14 +284,12 @@ export async function analyzeStudyPlan(
       const delta = chunk.choices?.[0]?.delta;
       finishReason = chunk.choices?.[0]?.finish_reason ?? finishReason;
 
-      // Phase 1: thinking tokens
       if ((delta as Record<string, unknown>)?.reasoning_content) {
         const rc = (delta as Record<string, string>).reasoning_content;
         thinkingLogs.push(rc);
         stream?.({ type: "log", message: rc });
       }
 
-      // Phase 2: tool call deltas — accumulate partial arguments
       if (delta?.tool_calls) {
         for (const tc of delta.tool_calls) {
           const idx = tc.index;
@@ -362,16 +307,13 @@ export async function analyzeStudyPlan(
         }
       }
 
-      // Phase 3: content deltas (final answer) — stream to client
       if (delta?.content) {
         contentBuffer += delta.content;
         stream?.({ type: "content_delta", text: delta.content });
       }
     }
 
-    // Stream ended — check what happened
     if (finishReason === "tool_calls") {
-      // Build tool call messages from accumulators
       const toolCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] =
         [];
       for (const [, acc] of toolAccumulators) {
@@ -386,23 +328,19 @@ export async function analyzeStudyPlan(
         });
       }
 
-      // Push assistant message with tool calls
       apiMessages.push({
         role: "assistant",
         content: null,
         tool_calls: toolCalls,
       } as OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam);
 
-      // Execute each tool and push results
       for (const tc of toolCalls) {
         if (tc.type !== "function") continue;
 
         const raw = tc.function.arguments.trim();
 
-        // Streaming can truncate tool-call JSON. Repair common truncations.
         let json = raw;
         if (json.startsWith("{") && !json.endsWith("}")) {
-          // Missing closing brace — try appending enough to close it
           if (json.endsWith('"')) json += "}";
           else json += '"}';
         }
@@ -439,7 +377,7 @@ export async function analyzeStudyPlan(
         } as OpenAI.Chat.Completions.ChatCompletionToolMessageParam);
       }
 
-      continue; // next turn — LLM processes tool results
+      continue;
     }
 
     // finishReason === "stop" — final response
@@ -453,21 +391,27 @@ export async function analyzeStudyPlan(
       const parsed = JSON.parse(jsonStr) as {
         studyInfo: StudyPlanParams;
         reasoning: string;
-        question: string | null;
-        conflictExplanation: string | null;
         userCapacity: UserCapacity;
-        thinkingLogs?: string[];
       };
 
       const result: AnalystResult = {
-        thinkingLogs: [...thinkingLogs, ...(parsed.thinkingLogs ?? [])],
-        studyInfo: parsed.studyInfo,
+        thinkingLogs,
+        studyInfo: {
+          timeFrameDays: parsed.studyInfo.timeFrameDays || DEFAULT_PARAMS.timeFrameDays,
+          hoursPerDay: parsed.studyInfo.hoursPerDay || DEFAULT_PARAMS.hoursPerDay,
+          studyDays: parsed.studyInfo.studyDays?.length
+            ? parsed.studyInfo.studyDays
+            : DEFAULT_PARAMS.studyDays,
+        },
         reasoning: parsed.reasoning,
-        question: parsed.question ?? null,
-        conflictExplanation: parsed.conflictExplanation ?? null,
         userCapacity: parsed.userCapacity ?? { weeklyVelocity: 0, isAggressiveTimeline: false },
       };
-      stream?.({ type: "analyst", result });
+      stream?.({
+        type: "analyst_done",
+        reasoning: result.reasoning,
+        studyInfo: result.studyInfo,
+        userCapacity: result.userCapacity,
+      });
       return result;
     } catch {
       console.error("Analyst: failed to parse LLM output:", jsonStr.slice(0, 300));
@@ -475,9 +419,7 @@ export async function analyzeStudyPlan(
       return {
         thinkingLogs,
         studyInfo: { ...DEFAULT_PARAMS },
-        reasoning: "Based on your preferences, here's a balanced study plan. Adjust as needed.",
-        question: null,
-        conflictExplanation: null,
+        reasoning: "Based on your preferences, here's a balanced study plan.",
         userCapacity: { weeklyVelocity: 0, isAggressiveTimeline: false },
       };
     }
