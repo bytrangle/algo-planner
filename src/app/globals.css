@@ -21,6 +21,12 @@
   }
 }
 
+@layer utilities {
+  .pill {
+    @apply font-mono text-xs leading-none px-1.5 py-0.5 rounded-full border border-zinc-300 dark:border-zinc-600 block truncate
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
