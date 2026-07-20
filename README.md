@@ -1,3 +1,5 @@
+<img width="1207" height="830" alt="Screenshot from 2026-07-20 17-44-48" src="https://github.com/user-attachments/assets/396efbd1-ecad-42a1-84c1-99354007b454" />
+
 # AlgoMap — Smarter Algorithm Practice with AI
 
 AlgoMap helps you master algorithm problems by visualizing how they relate to each other and generating personalized study plans powered by a multi-agent AI system. It combines an interactive topic map with an intelligent planner that adapts to your schedule and skill level.
@@ -5,6 +7,8 @@ AlgoMap helps you master algorithm problems by visualizing how they relate to ea
 ## How It Works
 
 ### Visualization (AlgoMap)
+
+<img width="1724" height="917" alt="Screenshot from 2026-07-20 17-35-53" src="https://github.com/user-attachments/assets/ffe96905-af6e-4733-b29f-4ca2401ad530" />
 
 The interactive map organizes 150+ algorithm problems from [labuladong.online](https://labuladong.online/en/algo) into a hierarchical circle-packing layout built with D3.js:
 
@@ -42,7 +46,11 @@ The Optimizer refines the plan by identifying your weakest topics. It:
 3. **Reorders** problems so that weakest topics appear first in the calendar, prioritizing focused practice on areas with the most room for improvement
 4. **Respects** your daily time limit — if problems can't fit within `hoursPerDay`, it extends the plan and notes the change in the summary
 
+<img width="1324" height="903" alt="Screenshot from 2026-07-20 17-42-06" src="https://github.com/user-attachments/assets/bf19bb25-7ed2-46da-a50d-6e499160b49d" />
+
 The result is a day-by-day study calendar with problem assignments, difficulty distribution rationale, and skill-based adjustments.
+
+<img width="1673" height="835" alt="Screenshot from 2026-07-20 17-44-29" src="https://github.com/user-attachments/assets/d374d2af-1220-42a4-a4c8-af8f41541262" />
 
 ## How to Use
 
