@@ -73,7 +73,7 @@ function asPackedNode(node: d3.HierarchyNode<HierarchyData>): PackedNode {
 }
 
 const SPACING = {
-  PROBLEM_RADIUS: 8,
+  PROBLEM_RADIUS: 8,  // Keep original for layout calculations
   FRAMEWORK_INNER_PADDING: 2, // tightest
   FRAMEWORK_OUTER_PADDING: 15, // spacing between frameworks/series
   TOPIC_OUTER_PADDING: 40 // spacing between topics
@@ -303,16 +303,16 @@ function formatSolvedDate(lastSubmittedAt: string): string {
 
 /** Compute visual radius from a lastSubmittedAt timestamp.
  *
- *  ≤1 month → 5, 1–3 months → 10, 3–6 months → 15, >6 months → 20 (px). */
+ *  ≤1 month → 2 (4px), 1–3 months → 4 (8px), 3–6 months → 8 (16px), >6 months → 16 (32px). */
 function solvedRadius(lastSubmittedAt: string): number {
   const elapsed = Date.now() - parseTimestampMs(lastSubmittedAt);
   const msPerMonth = 30 * 24 * 60 * 60 * 1000;
   const months = elapsed / msPerMonth;
 
-  if (months <= 1) return 5;
-  if (months <= 3) return 10;
-  if (months <= 6) return 15;
-  return 20;
+  if (months <= 1) return 2;
+  if (months <= 3) return 4;
+  if (months <= 6) return 8;
+  return 16;
 }
 
 // Main component
@@ -432,9 +432,9 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
         // When no cache exists yet, show all problems as uniform filled circles
         // by difficulty.  When cache exists, size by recency and hollow unsolved.
         const uniform = !solvedTimestamps
-        const r = uniform ? SPACING.PROBLEM_RADIUS
+        const r = uniform ? 2  // Default radius for all problems when no solved data (4px diameter)
           : timestamp ? solvedRadius(timestamp)
-          : SPACING.PROBLEM_RADIUS
+          : 16  // Unsolved problems get the same size as problems solved >6 months ago (32px diameter)
         return (
           <circle
             key={node.id}
@@ -443,7 +443,7 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
             r={r}
             fill={uniform ? DIFFICULTY_HEX[problem.difficulty]
               : timestamp ? DIFFICULTY_HEX[problem.difficulty]
-              : "none"}
+              : "transparent"}
             stroke={uniform ? undefined
               : timestamp ? undefined
               : DIFFICULTY_HEX[problem.difficulty]}
@@ -469,14 +469,15 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
           y={hoveredProblem.y - (hoveredProblem.seriesName ? 65 : 50)}
           width={240}
           height={120}
+          style={{ pointerEvents: "none" }}
         >
           <div className="bg-white border border-gray-300 rounded shadow-md px-3 py-2 inline-block min-w-0 max-w-[220px]">
             {hoveredProblem.seriesName && (
-              <div className="text-xs font-mono font-bold text-gray-800 mb-1.5 wrap-break-word leading-tight">
-                {hoveredProblem.seriesName}
+              <div className="font-mono text-zinc-700 dark:text-zinc-300 mb-1.5 wrap-break-word leading-tight">
+                Series: {hoveredProblem.seriesName}
               </div>
             )}
-            <div className="text-sm text-gray-900 wrap-break-word leading-tight">
+            <div className="text-lg wrap-break-word leading-tight">
               {hoveredProblem.problem.title}
             </div>
             {hoveredProblem.lastSolved && (
@@ -496,16 +497,16 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
           <div className="font-semibold text-gray-900 mb-2 text-center">Status</div>
           <div className="flex justify-around items-center">
             <div className="flex flex-col items-center gap-1">
-              <svg width="20" height="20" viewBox="0 0 20 20" className="block">
-                <circle cx="10" cy="10" r="7" fill="none" stroke={DIFFICULTY_HEX.Easy} strokeWidth="2" />
+              <svg width="40" height="40" viewBox="0 0 40 40" className="block">
+                <circle cx="20" cy="20" r="16" fill="none" stroke={DIFFICULTY_HEX.Easy} strokeWidth="2" />
               </svg>
               <span className="text-xs text-gray-500">unsolved</span>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <svg width="20" height="20" viewBox="0 0 20 20" className="block">
-                <circle cx="10" cy="10" r="7" fill={DIFFICULTY_HEX.Easy} />
+              <svg width="40" height="40" viewBox="0 0 40 40" className="block">
+                <circle cx="20" cy="20" r="16" fill={DIFFICULTY_HEX.Easy} />
               </svg>
-              <span className="text-xs text-gray-500">solved</span>
+              <span className="text-xs text-gray-500">solved &gt;6mo ago</span>
             </div>
           </div>
         </div>
@@ -530,10 +531,10 @@ export default function AlgoMap({ solvedTimestamps }: AlgoMapProps) {
           <div className="font-semibold text-gray-900 mb-2 text-center">Last Solved</div>
           <div className="flex gap-x-1 justify-center items-start">
             {[
-              { r: 5, label: "≤1 mo", desc: "within 1 month" },
-              { r: 10, label: "1-3 mo", desc: "1-3 months ago" },
-              { r: 15, label: "3-6 mo", desc: "3-6 months ago" },
-              { r: 20, label: ">6 mo", desc: "over 6 months ago" },
+              { r: 2, label: "≤1 mo", desc: "within 1 month" },
+              { r: 4, label: "1-3 mo", desc: "1-3 months ago" },
+              { r: 8, label: "3-6 mo", desc: "3-6 months ago" },
+              { r: 16, label: ">6 mo", desc: "over 6 months ago" },
             ].map((item) => (
               <div key={item.r} className="flex flex-col items-center gap-1">
                 <svg width="40" height="40" viewBox="0 0 40 40" className="block">
