@@ -139,7 +139,7 @@ export default function AuthModal({ isOpen, onClose, onDone }: AuthModalProps) {
               className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300"
             >
               LEETCODE_SESSION
-              <span className="text-xs text-zinc-400 dark:text-zinc-500">(optional)</span>
+              <span className="text-red-500">*</span>
               <span className="relative">
                 <button
                   type="button"
@@ -162,15 +162,13 @@ export default function AuthModal({ isOpen, onClose, onDone }: AuthModalProps) {
             </label>
             <input
               type="text"
+              required
               id="leetcode_cookie"
               name="leetcode_cookie"
               value={leetcodeCookie}
               onChange={(e) => setLeetcodeCookie(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
             />
-            <p className="mt-1.5 text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
-              Without a cookie, only &ldquo;Use Mock Data&rdquo; is available.
-            </p>
             {error && (
               <p className="mt-1.5 text-xs text-red-600 dark:text-red-400 leading-relaxed">
                 {error}
