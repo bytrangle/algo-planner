@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AlgoMap — Smarter Algorithm Practice with AI
 
-## Getting Started
+AlgoMap helps you master algorithm problems by visualizing how they relate to each other and generating personalized study plans powered by a multi-agent AI system. It combines an interactive topic map with an intelligent planner that adapts to your schedule and skill level.
 
-First, run the development server:
+## How It Works
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Visualization (AlgoMap)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The interactive map organizes 150+ algorithm problems from [labuladong.online](https://labuladong.online/en/algo) into a hierarchical circle-packing layout built with D3.js:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Topics** (e.g., Linked List, Dynamic Programming, Binary Tree) are outer containers
+- **Frameworks and Problem Series** (e.g., Two Pointers, Sliding Window, Island Problems) are nested within topics
+- **Individual problems** are dots inside each framework/series
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+When you sync your LeetCode progress, solved problems are sized by recency:
+- Within 1 month: small (4px) — fresh in memory
+- 1–3 months ago: medium (8px) — still familiar
+- 3–6 months ago: larger (16px) — needs review
+- Over 6 months ago / unsolved: largest (32px) — top priority
 
-## Learn More
+Hover over any problem to see its title, series, and last solved date.
 
-To learn more about Next.js, take a look at the following resources:
+### Study Plan (Multi-Agent System)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+When you describe your study preferences in natural language, a pipeline of three AI agents collaborates to build a personalized plan:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### Agent 1: Analyst
+The Analyst extracts structured study parameters from your message. It parses details like timeframe ("3 months" → 90 days), hours per day ("2h" → 2), and study days ("weekdays" → Mon–Fri). For any missing parameters, it fetches your LeetCode behavioral data (submission calendar, badges) to estimate your capacity and weekly velocity. The output is a structured set of parameters used by the downstream agents.
 
-## Deploy on Vercel
+#### Agent 2: Designer
+The Designer takes the study parameters and all available problems, then:
+1. **Filters** out recently solved problems (within the last 6 months) to focus on what needs practice
+2. **Fetches** your LeetCode submission stats (Easy/Medium/Hard breakdown) to assess your level
+3. **Decides** difficulty ratios and priority rules based on your skill level — a beginner gets more Easy problems; an advanced learner gets more Hard
+4. **Schedules** problems across study days, grouping essential problems into manageable daily blocks and balancing with extra practice problems
+5. **Outputs** a complete calendar with per-day problem assignments
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Agent 3: Optimizer
+The Optimizer refines the plan by identifying your weakest topics. It:
+1. **Fetches** your per-topic solved counts from LeetCode and the total problem counts for each topic from LeetCode's tags endpoint
+2. **Computes** a coverage ratio (`problemsSolved / totalProblems`) per topic — the lower the ratio, the weaker the topic
+3. **Reorders** problems so that weakest topics appear first in the calendar, prioritizing focused practice on areas with the most room for improvement
+4. **Respects** your daily time limit — if problems can't fit within `hoursPerDay`, it extends the plan and notes the change in the summary
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The result is a day-by-day study calendar with problem assignments, difficulty distribution rationale, and skill-based adjustments.
+
+## How to Use
+
+### 1. Sync Your LeetCode Progress (Optional)
+
+Click **Update Your Map** and enter:
+- **Username**: Your LeetCode username
+- **LEETCODE_SESSION**: (optional for Sync, or use "Use Mock Data") Found in your browser dev tools → Application → Storage → Cookies → leetcode.com
+
+This downloads your solved problem data and persists it locally. Solved problems will be visually sized by recency on the map.
+
+Alternatively, if you don't want to use your Leetcode data, you can click Use Mock Data. The magic is still the same. 
+
+### 2. Generate a Study Plan
+
+Scroll down to the **Study Plan** section and describe your availability in plain English, for example:
+
+> *"I have 2 months to prepare, can study 2 hours a day on weekdays."*
+
+Or if you're not sure:
+
+> *"I don't know, just give me a reasonable plan."*
+
+Behind the scenes, three AI agents collaborate in a pipeline:
+
+1. **Analyst** Parses your message to extract study parameters (timeframe, hours per day, study days). If something is missing, it fetches your LeetCode submission history to estimate your weekly velocity and consistency, then fills in the gaps automatically.
+
+2. **Designer** Takes the parameters and all available problems. It fetches your LeetCode solve stats (Easy/Medium/Hard counts) to assess your level, then decides the optimal difficulty mix and schedules problems across the available study days — balancing essential problems with extra practice.
+
+3. **Optimizer** Fetches your per-topic solved counts and LeetCode's topic-level problem totals, then computes a coverage ratio (`problemsSolved / totalProblems`) for each topic — the lower the ratio, the weaker the area. Problems are reordered so weakest topics come first. It also enforces your daily time limit, extending the plan if needed to keep every day within `hoursPerDay`.
+
+The system streams each agent's thinking to the UI in real time, so you can follow along as the plan is built.
+
+The three-agent system will process your request and display:
+- **Plan Summary**: Total problems, essential vs. extra breakdown, total days and hours
+- **Difficulty Distribution**: Why certain ratios were chosen
+- **Topic Prioritization**: Which topics need the most attention
+- **Study Calendar**: A month-by-month calendar with problem assignments for each study day
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
